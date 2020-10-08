@@ -2,6 +2,7 @@ package com.lennydennis.zerakiapp.ui;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -170,11 +171,25 @@ public class RoomFragment extends Fragment {
         TextInputEditText userNameEditText = new TextInputEditText(requireActivity());
         TextInputEditText  roomNameEditText = new TextInputEditText(requireActivity());
         mConnectDialog = Dialog.createConnectDialog(userNameEditText,roomNameEditText,
-//                connectClickListener(userNameEditText,roomNameEditText),
-//                cancelConnectDialogClickListener(),
-                null,null,
+                connectClickListener(userNameEditText,roomNameEditText),
+                cancelConnectDialogClickListener(),
                 requireActivity());
         mConnectDialog.show();
+    }
+
+    private DialogInterface.OnClickListener connectClickListener(EditText userNameEditText, EditText roomNameEditText) {
+        return (dialog, which) -> {
+            String user = userNameEditText.getText().toString();
+            String room = roomNameEditText.getText().toString();
+            setAccessToken(user,room);
+        };
+    }
+
+    private DialogInterface.OnClickListener cancelConnectDialogClickListener() {
+        return (dialog, which) -> {
+            initializeUI();
+            mConnectDialog.dismiss();
+        };
     }
 
     private View.OnClickListener switchCameraClickListener() {
