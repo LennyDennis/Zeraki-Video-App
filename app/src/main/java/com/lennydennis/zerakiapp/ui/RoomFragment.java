@@ -181,7 +181,7 @@ public class RoomFragment extends Fragment {
         return (dialog, which) -> {
             String user = userNameEditText.getText().toString();
             String room = roomNameEditText.getText().toString();
-            setAccessToken(user,room);
+           // setAccessToken(user,room);
         };
     }
 
