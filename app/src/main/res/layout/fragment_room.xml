@@ -6,5 +6,98 @@
     android:layout_height="match_parent"
     tools:context=".RoomFragment">
 
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/video_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/lobbyToolbar"
+        app:elevation="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fitsSystemWindows="true"
+            android:minHeight="?attr/actionBarSize"
+            app:popupTheme="@style/AppTheme.Lobby.PopupMenu" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <include
+        android:id="@+id/include"
+        layout="@layout/participant_primary_view" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/remote_video_thumbnails"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="8dp"
+        android:scrollbars="horizontal"
+        app:layout_constraintBottom_toBottomOf="@+id/include"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="end|bottom"
+        android:orientation="vertical"
+        android:layout_marginEnd="12dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/video_call"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/fab_margin"
+            android:background="@drawable/roundbutton"
+            app:backgroundTint="@color/colorCall"
+            app:srcCompat="@drawable/ic_baseline_video_call_24" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/switch_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/fab_margin"
+            android:background="@drawable/roundbutton"
+            app:backgroundTint="@color/lobbyMediaControls"
+            app:srcCompat="@drawable/ic_baseline_flip_camera_ios_24" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/disable_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/fab_margin"
+            android:background="@drawable/roundbutton"
+            app:backgroundTint="@color/lobbyMediaControls"
+            app:srcCompat="@drawable/ic_videocam_white_24px" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/disable_mic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/fab_margin"
+            android:background="@drawable/roundbutton"
+            app:backgroundTint="@color/lobbyMediaControls"
+            app:srcCompat="@drawable/ic_mic_white_24px" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/disconnect_call"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/fab_margin"
+            android:background="@drawable/roundbutton"
+            android:visibility="gone"
+            app:backgroundTint="@android:color/holo_red_dark"
+            app:srcCompat="@drawable/ic_call_end_white_24px" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
