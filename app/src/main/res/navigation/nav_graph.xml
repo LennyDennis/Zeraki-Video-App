@@ -3,11 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/FirstFragment">
-
+    app:startDestination="@id/roomFragment">
     <fragment
-        android:id="@+id/FirstFragment"
-        android:name="com.lennydennis.zerakivideo.ui.RoomFragment"
-        android:label="@string/first_fragment_label"
-        tools:layout="@layout/fragment_room"/>
+        android:id="@+id/roomFragment"
+        android:name="com.lennydennis.zerakiapp.ui.RoomFragment"
+        android:label="fragment_room"
+        tools:layout="@layout/fragment_room" />
 </navigation>

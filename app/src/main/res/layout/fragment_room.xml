@@ -4,13 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".RoomFragment">
+    tools:context=".ui.RoomFragment">
+
+    <include
+        android:id="@+id/include"
+        layout="@layout/participant_primary_view" />
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/video_toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/lobbyToolbar"
+        android:background="@color/colorPrimaryDark"
         app:elevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,10 +29,6 @@
             app:popupTheme="@style/AppTheme.Lobby.PopupMenu" />
 
     </com.google.android.material.appbar.AppBarLayout>
-
-    <include
-        android:id="@+id/include"
-        layout="@layout/participant_primary_view" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/remote_video_thumbnails"
