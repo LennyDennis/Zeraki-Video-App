@@ -7,7 +7,7 @@
     tools:context=".ui.RoomFragment">
 
     <include
-        android:id="@+id/include"
+        android:id="@+id/include_video_view"
         layout="@layout/participant_primary_view" />
 
     <com.google.android.material.appbar.AppBarLayout
@@ -37,7 +37,7 @@
         android:layout_gravity="bottom|start"
         android:layout_margin="8dp"
         android:scrollbars="horizontal"
-        app:layout_constraintBottom_toBottomOf="@+id/include"
+        app:layout_constraintBottom_toBottomOf="@+id/include_video_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"/>
 

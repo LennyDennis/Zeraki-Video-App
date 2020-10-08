@@ -7,13 +7,10 @@ import android.content.pm.PackageManager;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.AndroidViewModel;
-import androidx.lifecycle.ViewModel;
 
-import com.lennydennis.zerakiapp.util.PermissionUtil;
+import com.twilio.video.CameraCapturer;
 
 public class RoomFragmentViewModel extends AndroidViewModel {
-
-    PermissionUtil mPermissionUtil;
 
     public RoomFragmentViewModel(@NonNull Application application) {
         super(application);
@@ -23,5 +20,11 @@ public class RoomFragmentViewModel extends AndroidViewModel {
         int resultCamera = ContextCompat.checkSelfPermission(getApplication(), Manifest.permission.CAMERA);
         int resultMic = ContextCompat.checkSelfPermission(getApplication(), Manifest.permission.RECORD_AUDIO);
         return (resultCamera == PackageManager.PERMISSION_GRANTED) && (resultMic == PackageManager.PERMISSION_GRANTED);
+    }
+
+    public CameraCapturer.CameraSource getAvailableCameraSource() {
+        return (CameraCapturer.isSourceAvailable(CameraCapturer.CameraSource.FRONT_CAMERA)) ?
+                (CameraCapturer.CameraSource.FRONT_CAMERA) :
+                (CameraCapturer.CameraSource.BACK_CAMERA);
     }
 }
