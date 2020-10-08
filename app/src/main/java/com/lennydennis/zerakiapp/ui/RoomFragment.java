@@ -9,6 +9,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -16,20 +17,23 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.textfield.TextInputEditText;
 import com.lennydennis.zerakiapp.R;
 import com.lennydennis.zerakiapp.databinding.FragmentRoomBinding;
+import com.lennydennis.zerakiapp.dialog.Dialog;
 import com.lennydennis.zerakiapp.util.CameraCapturerCompat;
+import com.twilio.video.CameraCapturer;
 import com.twilio.video.LocalAudioTrack;
 import com.twilio.video.LocalVideoTrack;
 import com.twilio.video.VideoRenderer;
 import com.twilio.video.VideoTextureView;
-
-import java.util.Objects;
 
 public class RoomFragment extends Fragment {
 
@@ -50,6 +54,11 @@ public class RoomFragment extends Fragment {
     private ImageView mPrimaryParticipantStubImage;
     private com.lennydennis.zerakiapp.databinding.ParticipantPrimaryViewBinding mIncludeVideoView;
     private ImageButton mSwitchCameraButton;
+    private ImageButton mToggleVideoButton;
+    private ImageButton mToggleMicButton;
+    private ImageButton mDisconnectCallButton;
+    private ImageButton mVideoCallButton;
+    private AlertDialog mConnectDialog;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -69,6 +78,10 @@ public class RoomFragment extends Fragment {
         mSelectedParticipantIdentity = mIncludeVideoView.participantSelectedIdentity;
         mPrimaryParticipantStubImage = mIncludeVideoView.participantStubImage;
         mSwitchCameraButton = mFragmentRoomBinding.switchCamera;
+        mToggleVideoButton = mFragmentRoomBinding.disableCamera;
+        mToggleMicButton = mFragmentRoomBinding.disableMic;
+        mDisconnectCallButton = mFragmentRoomBinding.disconnectCall;
+        mVideoCallButton = mFragmentRoomBinding.videoCall;
 
 
         mContext = getContext();
@@ -77,8 +90,16 @@ public class RoomFragment extends Fragment {
 
         ((AppCompatActivity) requireActivity()).setSupportActionBar(mFragmentRoomBinding.toolbar);
 
+        initializeUI();
         // Inflate the layout for this fragment
         return view;
+    }
+
+    private void initializeUI() {
+        mVideoCallButton.setOnClickListener(connectVideoCallClickListener());
+        mSwitchCameraButton.setOnClickListener(switchCameraClickListener());
+        mToggleVideoButton.setOnClickListener(toggleVideoClickListener());
+        mToggleMicButton.setOnClickListener(toggleMicClickListener());
     }
 
     @Override
@@ -118,7 +139,6 @@ public class RoomFragment extends Fragment {
         mPrimaryParticipantStubImage.setVisibility(View.INVISIBLE);
         mPrimaryParticipantIdentity.setVisibility(View.INVISIBLE);
         mSelectedParticipantIdentity.setVisibility(View.INVISIBLE);
-        //mSwitchCameraButton.setEnabled(false);
     }
 
     @Override
@@ -141,4 +161,76 @@ public class RoomFragment extends Fragment {
 
         return super.onOptionsItemSelected(item);
     }
+
+    private View.OnClickListener connectVideoCallClickListener() {
+        return v -> showConnectDialog();
+    }
+
+    private void showConnectDialog() {
+        TextInputEditText userNameEditText = new TextInputEditText(requireActivity());
+        TextInputEditText  roomNameEditText = new TextInputEditText(requireActivity());
+        mConnectDialog = Dialog.createConnectDialog(userNameEditText,roomNameEditText,
+//                connectClickListener(userNameEditText,roomNameEditText),
+//                cancelConnectDialogClickListener(),
+                null,null,
+                requireActivity());
+        mConnectDialog.show();
+    }
+
+    private View.OnClickListener switchCameraClickListener() {
+        return v -> {
+            if (mCameraCapturerCompat != null) {
+                CameraCapturer.CameraSource cameraSource = mCameraCapturerCompat.getCameraSource();
+                mCameraCapturerCompat.switchCamera();
+//                if (participantThumbnailVideoView.getVisibility() == View.VISIBLE) {
+//                    participantThumbnailVideoView.setMirror(cameraSource == CameraCapturer.CameraSource.BACK_CAMERA);
+//                } else {
+                    mPrimaryVideoView.setMirror(cameraSource == CameraCapturer.CameraSource.BACK_CAMERA);
+                //}
+            }
+        };
+    }
+
+
+    private View.OnClickListener toggleVideoClickListener() {
+        return v -> {
+            if (mLocalVideoTrack != null) {
+                boolean enable = !mLocalVideoTrack.isEnabled();
+                mLocalVideoTrack.enable(enable);
+                int icon;
+                if (enable) {
+                    icon = R.drawable.ic_videocam_white_24px;
+                    mSwitchCameraButton.setEnabled(true);
+                    mPrimaryParticipantStubImage.setVisibility(View.INVISIBLE);
+                } else {
+                    icon = R.drawable.ic_baseline_videocam_off_24;
+                    mSwitchCameraButton.setEnabled(false);
+                    mPrimaryParticipantStubImage.setVisibility(View.VISIBLE);
+                }
+                mToggleVideoButton.setImageDrawable(
+                        ContextCompat.getDrawable(mContext, icon));
+            }
+        };
+    }
+
+    private View.OnClickListener toggleMicClickListener() {
+        return v -> {
+            if (mLocalAudioTrack != null) {
+                boolean enable = !mLocalAudioTrack.isEnabled();
+                mLocalAudioTrack.enable(enable);
+                int icon = enable ?
+                        R.drawable.ic_mic_white_24px : R.drawable.ic_baseline_mic_off_24;
+                mToggleMicButton.setImageDrawable(ContextCompat.getDrawable(
+                        mContext, icon));
+            }
+        };
+    }
+
+
+//    private void setDisconnectVideoCallAction() {
+//        connectVideoCall.setImageDrawable(ContextCompat.getDrawable(this,
+//                R.drawable.ic_baseline_call_end_24));
+//        connectVideoCall.show();
+//        connectVideoCall.setOnClickListener(disconnectClickListener());
+//    }
 }
