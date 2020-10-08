@@ -7,10 +7,17 @@ import android.content.pm.PackageManager;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.MutableLiveData;
 
+import com.lennydennis.zerakiapp.model.AccessTokenState;
+import com.lennydennis.zerakiapp.repositories.AccessTokenRepo;
+import com.lennydennis.zerakiapp.repositories.AccessTokenRepoImpl;
 import com.twilio.video.CameraCapturer;
 
 public class RoomFragmentViewModel extends AndroidViewModel {
+
+    private AccessTokenRepo mAccessTokenRepo = new AccessTokenRepoImpl();
+    public MutableLiveData<AccessTokenState> mAccessTokenMutableLiveData = new MutableLiveData<>();
 
     public RoomFragmentViewModel(@NonNull Application application) {
         super(application);
@@ -27,4 +34,9 @@ public class RoomFragmentViewModel extends AndroidViewModel {
                 (CameraCapturer.CameraSource.FRONT_CAMERA) :
                 (CameraCapturer.CameraSource.BACK_CAMERA);
     }
+
+    public MutableLiveData<AccessTokenState> fetchAccessToken(String userName, String roomName){
+        return  mAccessTokenMutableLiveData = mAccessTokenRepo.fetchAccessToken(userName,roomName);
+    }
+
 }

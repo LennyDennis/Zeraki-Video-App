@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.lennydennis.zerakiapp.api.TwilioApi;
 import com.lennydennis.zerakiapp.api.TwilioRetrofitInstance;
+import com.lennydennis.zerakiapp.model.AccessTokenState;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -18,17 +19,17 @@ public class AccessTokenRepoImpl implements AccessTokenRepo {
     public AccessTokenRepoImpl() {
     }
 
-    private TwilioApi twilioApiService = TwilioRetrofitInstance.getTwilioReftrofitInstance();
 
     @Override
-    public MutableLiveData<String> fetchAccessToken(String userName, String roomName) {
-        final MutableLiveData<String> roomAccessToken = new MutableLiveData<>();
+    public MutableLiveData<AccessTokenState> fetchAccessToken(String userName, String roomName) {
+        TwilioApi twilioApiService = TwilioRetrofitInstance.getTwilioReftrofitInstance();
+        MutableLiveData<AccessTokenState> roomAccessToken = new MutableLiveData<>();
         Call<String> call = twilioApiService.getAccessToken(userName, roomName);
         call.enqueue(new Callback<String>() {
             @Override
             public void onResponse(Call<String> call, Response<String> response) {
                 if (response.isSuccessful()) {
-                    roomAccessToken.setValue(response.body());
+                    roomAccessToken.setValue(new AccessTokenState(response.body()));
                 } else {
                     Log.e(TAG, "onResponse: Not Successful");
                 }
@@ -40,6 +41,6 @@ public class AccessTokenRepoImpl implements AccessTokenRepo {
             }
         });
 
-        return null;
+        return roomAccessToken;
     }
 }
