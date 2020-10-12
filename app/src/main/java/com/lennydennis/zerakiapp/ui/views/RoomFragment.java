@@ -59,12 +59,10 @@ import com.twilio.video.ScreenCapturer;
 import com.twilio.video.TwilioException;
 import com.twilio.video.Video;
 import com.twilio.video.VideoRenderer;
-import com.twilio.video.VideoTextureView;
 import com.twilio.video.VideoTrack;
 import com.twilio.video.VideoView;
 
 import java.util.Collections;
-import java.util.Objects;
 
 public class RoomFragment extends Fragment {
 
@@ -105,22 +103,25 @@ public class RoomFragment extends Fragment {
     private AudioSwitch mAudioSwitch;
     private LocalVideoTrack mScreenVideoTrack;
 
-    private ScreenCapturerManager mScreenCapturerManager;
     private ScreenCapturer mScreenCapturer;
-    private final ScreenCapturer.Listener screenCapturerListener = new ScreenCapturer.Listener() {
-        @Override
-        public void onScreenCaptureError(String errorDescription) {
-            Log.e(TAG, "Screen capturer error: " + errorDescription);
-            stopScreenCapture();
-            Toast.makeText(requireActivity(), "Screen sharing error",
-                    Toast.LENGTH_LONG).show();
-        }
+    private final ScreenCapturer.Listener screenCapturerListener =
+            new ScreenCapturer.Listener() {
+                @Override
+                public void onScreenCaptureError(@NonNull String errorDescription) {
+                    Log.e(TAG, "onScreenCaptureError:"+errorDescription );
+                    stopScreenCapture();
+                    Snackbar.make(
+                            mPrimaryVideoView,
+                            R.string.screen_capture_error,
+                            Snackbar.LENGTH_LONG)
+                            .show();
+                }
 
-        @Override
-        public void onFirstFrameAvailable() {
-            Log.d(TAG, "First frame from screen capturer available");
-        }
-    };
+                @Override
+                public void onFirstFrameAvailable() {
+                    Log.d(TAG, "onFirstFrameAvailable: First frame from screen capturer available");
+                }
+            };
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -156,10 +157,6 @@ public class RoomFragment extends Fragment {
         View view = mFragmentRoomBinding.getRoot();
 
         ((AppCompatActivity) requireActivity()).setSupportActionBar(mFragmentRoomBinding.toolbar);
-
-        if (Build.VERSION.SDK_INT >= 29) {
-            mScreenCapturerManager = new ScreenCapturerManager(mContext);
-        }
 
         initializeUI();
         // Inflate the layout for this fragment
@@ -243,10 +240,6 @@ public class RoomFragment extends Fragment {
             mLocalVideoTrack.release();
             mLocalVideoTrack = null;
         }
-
-        if (Build.VERSION.SDK_INT >= 29) {
-            mScreenCapturerManager.unbindService();
-        }
         super.onDestroy();
     }
 
@@ -301,19 +294,14 @@ public class RoomFragment extends Fragment {
         switch (id) {
             case R.id.share_screen_menu_item:
                 String shareScreen = getString(R.string.share_screen);
+
                 if (item.getTitle().equals(shareScreen)) {
-                    if (Build.VERSION.SDK_INT >= 29) {
-                        mScreenCapturerManager.startForeground();
-                    }
                     if (mScreenCapturer == null) {
                         requestScreenCapturePermission();
                     } else {
                         startScreenCapture();
                     }
                 } else {
-                    if (Build.VERSION.SDK_INT >= 29) {
-                        mScreenCapturerManager.endForeground();
-                    }
                     stopScreenCapture();
                 }
                 return true;
@@ -872,7 +860,6 @@ public class RoomFragment extends Fragment {
                 mLocalParticipant.unpublishTrack(mScreenVideoTrack);
             }
             mScreenVideoTrack.release();
-           // mScreenVideoTrack.removeRenderer(mScreenVideoTrack.getName());
             mScreenVideoTrack = null;
             mScreenCaptureMenuItem.setIcon(R.drawable.ic_screen_share_white_24dp);
             mScreenCaptureMenuItem.setTitle(R.string.share_screen);

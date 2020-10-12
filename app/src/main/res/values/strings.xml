@@ -20,4 +20,5 @@
     <string name="screen_capture_permission_not_granted">Screen capture permission not granted</string>
     <string name="stop_screen_share">Stop screen share</string>
     <string name="failed_to_add_screen_video_track">Failed to add screen video track</string>
+    <string name="screen_capture_error">Screen Capture Error</string>
 </resources>
