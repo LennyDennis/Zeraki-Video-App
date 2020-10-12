@@ -103,9 +103,9 @@ public class RoomFragment extends Fragment {
     private Boolean mDisconnectedFromOnDestroy;
     private int mSavedVolumeControlStream;
     private AudioSwitch mAudioSwitch;
-    private ScreenCapturerManager mScreenCapturerManager;
     private LocalVideoTrack mScreenVideoTrack;
 
+    private ScreenCapturerManager mScreenCapturerManager;
     private ScreenCapturer mScreenCapturer;
     private final ScreenCapturer.Listener screenCapturerListener = new ScreenCapturer.Listener() {
         @Override
@@ -848,13 +848,21 @@ public class RoomFragment extends Fragment {
 
     private void startScreenCapture() {
         mScreenVideoTrack = LocalVideoTrack.create(mContext, true, mScreenCapturer);
-        mScreenCaptureMenuItem.setIcon(R.drawable.ic_stop_screen_share_white_24dp);
-        mScreenCaptureMenuItem.setTitle(R.string.stop_screen_share);
 
-        //mPrimaryVideoView.setVisibility(View.VISIBLE);
-        mScreenVideoTrack.addRenderer(mPrimaryVideoView);
-        if (mLocalParticipant != null) {
-            mLocalParticipant.publishTrack(mScreenVideoTrack);
+        if (mScreenVideoTrack != null) {
+            mScreenCaptureMenuItem.setIcon(R.drawable.ic_stop_screen_share_white_24dp);
+            mScreenCaptureMenuItem.setTitle(R.string.stop_screen_share);
+
+            if (mLocalParticipant != null) {
+                mLocalParticipant.publishTrack(mScreenVideoTrack);
+            }
+        } else {
+            Snackbar.make(
+                    mPrimaryVideoView,
+                    R.string.failed_to_add_screen_video_track,
+                    Snackbar.LENGTH_LONG)
+                    .setAction("Action", null)
+                    .show();
         }
     }
 
@@ -863,49 +871,11 @@ public class RoomFragment extends Fragment {
             if (mLocalParticipant != null) {
                 mLocalParticipant.unpublishTrack(mScreenVideoTrack);
             }
-            mScreenVideoTrack.removeRenderer(mPrimaryVideoView);
             mScreenVideoTrack.release();
+           // mScreenVideoTrack.removeRenderer(mScreenVideoTrack.getName());
             mScreenVideoTrack = null;
-            //mPrimaryVideoView.setVisibility(View.INVISIBLE);
             mScreenCaptureMenuItem.setIcon(R.drawable.ic_screen_share_white_24dp);
             mScreenCaptureMenuItem.setTitle(R.string.share_screen);
         }
     }
-
-//    private fun startScreenCapture() {
-//        screenCapturer?.let { screenCapturer ->
-//                mScreenVideoTrack = LocalVideoTrack.create(this, true, screenCapturer,
-//                        SCREEN_TRACK_NAME)
-//            screenVideoTrack?.let { screenVideoTrack ->
-//                    screenCaptureMenuItem.setIcon(R.drawable.ic_stop_screen_share_white_24dp)
-//                screenCaptureMenuItem.setTitle(R.string.stop_screen_share)
-//                localVideoTrackNames[screenVideoTrack.name] = getString(R.string.screen_video_track)
-//                if (localParticipant != null) {
-//                    publishVideoTrack(screenVideoTrack, TrackPriority.HIGH)
-//                }
-//            } ?: run {
-//                Snackbar.make(
-//                        primaryVideoView,
-//                        R.string.failed_to_add_screen_video_track,
-//                        Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null)
-//                        .show()
-//            }
-//        }
-//    }
-
-//    private fun stopScreenCapture() {
-//        screenVideoTrack?.let { screenVideoTrack ->
-//                localParticipant?.let { localParticipant ->
-//                roomViewModel.processInput(ScreenTrackRemoved(localParticipant.sid))
-//            localParticipant.unpublishTrack(screenVideoTrack)
-//        }
-//            screenVideoTrack.release()
-//            localVideoTrackNames.remove(screenVideoTrack.name)
-//            this.screenVideoTrack = null
-//            screenCaptureMenuItem.setIcon(R.drawable.ic_screen_share_white_24dp)
-//            screenCaptureMenuItem.setTitle(R.string.share_screen)
-//        }
-//    }
-
 }
