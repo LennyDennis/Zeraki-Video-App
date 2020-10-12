@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <com.twilio.video.VideoView
+        <com.twilio.video.VideoTextureView
             android:id="@+id/participant_video"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -21,20 +21,20 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"/>
 
-<!--        <TextView-->
-<!--            android:id="@+id/participant_video_identity"-->
-<!--            android:layout_width="140dp"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:gravity="center"-->
-<!--            android:textColor="@android:color/white"-->
-<!--            android:textSize="14sp"-->
-<!--            android:background="@drawable/badge_background"-->
-<!--            android:padding="10dp"-->
-<!--            android:layout_marginTop="88dp"-->
-<!--            android:layout_marginLeft="16dp"-->
-<!--            android:layout_marginStart="16dp"-->
-<!--            app:layout_constraintStart_toStartOf="parent"-->
-<!--            app:layout_constraintTop_toTopOf="parent"/>-->
+        <TextView
+            android:id="@+id/participant_video_identity"
+            android:layout_width="140dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:background="@drawable/badge_background"
+            android:padding="10dp"
+            android:layout_marginTop="88dp"
+            android:layout_marginLeft="16dp"
+            android:layout_marginStart="16dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
