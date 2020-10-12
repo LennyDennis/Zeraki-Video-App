@@ -4,7 +4,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.RoomFragment">
+    tools:context=".ui.views.RoomFragment">
+
+    <com.twilio.video.VideoView
+        android:id="@+id/participant_video"
+        android:layout_width="110dp"
+        android:layout_height="140dp"
+        android:layout_margin="10dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/include_video_view"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <include
         android:id="@+id/include_video_view"
@@ -30,36 +39,30 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/remote_video_thumbnails"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_margin="8dp"
-        android:scrollbars="horizontal"
-        app:layout_constraintBottom_toBottomOf="@+id/include_video_view"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"/>
+
+
+<!--    <androidx.recyclerview.widget.RecyclerView-->
+<!--        android:id="@+id/remote_video_thumbnails"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_gravity="bottom|start"-->
+<!--        android:layout_margin="8dp"-->
+<!--        android:scrollbars="horizontal"-->
+<!--        app:layout_constraintBottom_toBottomOf="@+id/include_video_view"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"/>-->
 
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginEnd="12dp"
         android:gravity="end|bottom"
         android:orientation="vertical"
-        android:layout_marginEnd="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
-
-        <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/video_call"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/fab_margin"
-            android:background="@drawable/roundbutton"
-            app:backgroundTint="@color/colorCall"
-            app:srcCompat="@drawable/ic_baseline_video_call_24" />
 
         <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/switch_camera"
@@ -89,14 +92,13 @@
             app:srcCompat="@drawable/ic_mic_white_24px" />
 
         <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/disconnect_call"
+            android:id="@+id/video_call"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/fab_margin"
             android:background="@drawable/roundbutton"
-            android:visibility="gone"
-            app:backgroundTint="@android:color/holo_red_dark"
-            app:srcCompat="@drawable/ic_call_end_white_24px" />
+            app:backgroundTint="@color/lobbyMediaControls"
+            app:srcCompat="@drawable/ic_baseline_video_call_24" />
 
     </LinearLayout>
 

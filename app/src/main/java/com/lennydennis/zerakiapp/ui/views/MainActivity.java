@@ -1,4 +1,4 @@
-package com.lennydennis.zerakiapp.ui;
+package com.lennydennis.zerakiapp.ui.views;
 
 import android.os.Bundle;
 

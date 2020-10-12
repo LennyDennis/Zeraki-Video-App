@@ -1,4 +1,4 @@
-package com.lennydennis.zerakiapp.ui;
+package com.lennydennis.zerakiapp.ui.viewmodels;
 
 import android.Manifest;
 import android.app.Application;
