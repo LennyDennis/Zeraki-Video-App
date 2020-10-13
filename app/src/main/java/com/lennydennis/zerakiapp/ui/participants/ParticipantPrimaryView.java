@@ -61,7 +61,7 @@ public class ParticipantPrimaryView extends ParticipantView {
         View view = LayoutInflater.from(context).inflate(R.layout.participant_primary_view, this);
         ButterKnife.bind(this, view);
 
-        setIdentity(identity);
+        //setIdentity(identity);
         setState(state);
         setMirror(mirror);
         setScaleType(scaleType);

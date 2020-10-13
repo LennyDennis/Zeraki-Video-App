@@ -310,7 +310,7 @@ public class ParticipantController {
         }
 
         primaryItem = newItem;
-        primaryView.setIdentity(primaryItem.identity);
+       // primaryView.setIdentity(primaryItem.identity);
         primaryView.showIdentityBadge(true);
        // primaryView.setMuted(primaryItem.muted);
         primaryView.setMirror(mirror);
@@ -384,7 +384,7 @@ public class ParticipantController {
     private ParticipantView createThumb(final Item item) {
         final ParticipantView view = new ParticipantThumbView(thumbsViewContainer.getContext());
 
-        view.setIdentity(item.identity);
+      //  view.setIdentity(item.identity);
         //view.setMuted(item.muted);
         view.setMirror(item.mirror);
 

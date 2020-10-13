@@ -64,7 +64,7 @@
             android:layout_height="40dp"
             android:layout_centerInParent="true"
             android:contentDescription="@string/profile_picture"
-            app:srcCompat="@drawable/ic_baseline_account_circle_24" />
+            app:srcCompat="@drawable/ic_undraw_profile_pic_ic5t" />
 
         <TextView
             android:id="@+id/participant_selected_identity"

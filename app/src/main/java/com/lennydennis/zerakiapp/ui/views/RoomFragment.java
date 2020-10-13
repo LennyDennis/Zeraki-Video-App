@@ -87,7 +87,6 @@ public class RoomFragment extends Fragment {
     //private TextView mPrimaryParticipantIdentity;
     private TextView mSelectedParticipantIdentity;
     private ImageView mPrimaryParticipantStubImage;
-    private com.lennydennis.zerakiapp.databinding.ParticipantPrimaryViewBinding mIncludeVideoView;
     private ImageButton mSwitchCameraButton;
     private ImageButton mToggleVideoButton;
     private ImageButton mToggleMicButton;
@@ -138,18 +137,19 @@ public class RoomFragment extends Fragment {
             LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState
     ) {
-        mFragmentRoomBinding = FragmentRoomBinding.inflate(inflater, container, false);
-        mIncludeVideoView = mFragmentRoomBinding.includeVideoView;
-        mPrimaryVideoView = mIncludeVideoView.participantVideo;
-        //mPrimaryParticipantIdentity = mIncludeVideoView.participantVideoIdentity;
-        mSelectedParticipantIdentity = mIncludeVideoView.participantSelectedIdentity;
-        mPrimaryParticipantStubImage = mIncludeVideoView.participantStubImage;
-        mSwitchCameraButton = mFragmentRoomBinding.switchCamera;
-        mToggleVideoButton = mFragmentRoomBinding.disableCamera;
-        mToggleMicButton = mFragmentRoomBinding.disableMic;
-        mVideoCallButton = mFragmentRoomBinding.videoCall;
-        mReconnectingProgressBar = mIncludeVideoView.reconnectingProgressBar;
-        mParticipantThumbNailView = mFragmentRoomBinding.participantVideo;
+       mFragmentRoomBinding = FragmentRoomBinding.inflate(inflater, container, false);
+//        TextView
+//        mIncludeVideoView = mFragmentRoomBinding.includeVideoView;
+//        mPrimaryVideoView = mIncludeVideoView.participantVideo;
+//        mPrimaryParticipantIdentity = mIncludeVideoView.participantVideoIdentity;
+//        mSelectedParticipantIdentity = mIncludeVideoView.participantSelectedIdentity;
+//        mPrimaryParticipantStubImage = mIncludeVideoView.participantStubImage;
+//        mSwitchCameraButton = mFragmentRoomBinding.switchCamera;
+//        mToggleVideoButton = mFragmentRoomBinding.disableCamera;
+//        mToggleMicButton = mFragmentRoomBinding.disableMic;
+//        mVideoCallButton = mFragmentRoomBinding.videoCall;
+//        mReconnectingProgressBar = mIncludeVideoView.reconnectingProgressBar;
+//        mParticipantThumbNailView = mFragmentRoomBinding.participantVideo;
 
         mContext = getContext();
 
@@ -168,16 +168,16 @@ public class RoomFragment extends Fragment {
     }
 
     private void initializeUI() {
-        mVideoCallButton.setImageDrawable(ContextCompat.getDrawable(mContext,
-                R.drawable.ic_baseline_video_call_24));
-        mVideoCallButton.setVisibility(View.VISIBLE);
-        mVideoCallButton.setOnClickListener(connectVideoCallClickListener());
-        mSwitchCameraButton.setVisibility(View.VISIBLE);
-        mSwitchCameraButton.setOnClickListener(switchCameraClickListener());
-        mToggleVideoButton.setVisibility(View.VISIBLE);
-        mToggleVideoButton.setOnClickListener(toggleVideoClickListener());
-        mToggleMicButton.setVisibility(View.VISIBLE);
-        mToggleMicButton.setOnClickListener(toggleMicClickListener());
+//        mVideoCallButton.setImageDrawable(ContextCompat.getDrawable(mContext,
+//                R.drawable.ic_baseline_video_call_24));
+//        mVideoCallButton.setVisibility(View.VISIBLE);
+//        mVideoCallButton.setOnClickListener(connectVideoCallClickListener());
+//        mSwitchCameraButton.setVisibility(View.VISIBLE);
+//        mSwitchCameraButton.setOnClickListener(switchCameraClickListener());
+//        mToggleVideoButton.setVisibility(View.VISIBLE);
+//        mToggleVideoButton.setOnClickListener(toggleVideoClickListener());
+//        mToggleMicButton.setVisibility(View.VISIBLE);
+//        mToggleMicButton.setOnClickListener(toggleMicClickListener());
     }
 
     @Override
@@ -269,13 +269,13 @@ public class RoomFragment extends Fragment {
         mLocalAudioTrack = LocalAudioTrack.create(mContext, true, LOCAL_AUDIO_TRACK_NAME);
         mCameraCapturerCompat = new CameraCapturerCompat(mContext, mRoomFragmentViewModel.getAvailableCameraSource());
         mLocalVideoTrack = LocalVideoTrack.create(mContext, true, mCameraCapturerCompat.getVideoCapturer(), LOCAL_VIDEO_TRACK_NAME);
-        mPrimaryVideoView.setMirror(true);
-        mLocalVideoTrack.addRenderer(mPrimaryVideoView);
-        mLocalVideoView = mPrimaryVideoView;
+//        mPrimaryVideoView.setMirror(true);
+//        mLocalVideoTrack.addRenderer(mPrimaryVideoView);
+  //      mLocalVideoView = mPrimaryVideoView;
 
-        mPrimaryParticipantStubImage.setVisibility(View.INVISIBLE);
+     // mPrimaryParticipantStubImage.setVisibility(View.INVISIBLE);
       //  mPrimaryParticipantIdentity.setVisibility(View.INVISIBLE);
-        mSelectedParticipantIdentity.setVisibility(View.INVISIBLE);
+     //   mSelectedParticipantIdentity.setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -871,188 +871,188 @@ public class RoomFragment extends Fragment {
     }
 
 
-    private void addParticipant(RemoteParticipant remoteParticipant, boolean renderAsPrimary) {
-        boolean muted =
-                remoteParticipant.getRemoteAudioTracks().size() <= 0
-                        || !remoteParticipant.getRemoteAudioTracks().get(0).isTrackEnabled();
-        List<RemoteVideoTrackPublication> remoteVideoTrackPublications =
-                remoteParticipant.getRemoteVideoTracks();
+//    private void addParticipant(RemoteParticipant remoteParticipant, boolean renderAsPrimary) {
+//        boolean muted =
+//                remoteParticipant.getRemoteAudioTracks().size() <= 0
+//                        || !remoteParticipant.getRemoteAudioTracks().get(0).isTrackEnabled();
+//        List<RemoteVideoTrackPublication> remoteVideoTrackPublications =
+//                remoteParticipant.getRemoteVideoTracks();
+//
+//        if (remoteVideoTrackPublications.isEmpty()) {
+//            addParticipantVideoTrack(remoteParticipant, muted, null, renderAsPrimary);
+//        } else {
+//            for (RemoteVideoTrackPublication remoteVideoTrackPublication :
+//                    remoteVideoTrackPublications) {
+//                addParticipantVideoTrack(
+//                        remoteParticipant,
+//                        muted,
+//                        remoteVideoTrackPublication.getRemoteVideoTrack(),
+//                        renderAsPrimary);
+//                renderAsPrimary = false;
+//            }
+//        }
+//    }
 
-        if (remoteVideoTrackPublications.isEmpty()) {
-            addParticipantVideoTrack(remoteParticipant, muted, null, renderAsPrimary);
-        } else {
-            for (RemoteVideoTrackPublication remoteVideoTrackPublication :
-                    remoteVideoTrackPublications) {
-                addParticipantVideoTrack(
-                        remoteParticipant,
-                        muted,
-                        remoteVideoTrackPublication.getRemoteVideoTrack(),
-                        renderAsPrimary);
-                renderAsPrimary = false;
-            }
-        }
-    }
-
-    private void addParticipantVideoTrack(
-            RemoteParticipant remoteParticipant,
-            boolean muted,
-            RemoteVideoTrack remoteVideoTrack,
-            boolean renderAsPrimary) {
-        if (renderAsPrimary) {
-            ParticipantPrimaryView primaryView = mParticipantController.getPrimaryView();
-
-            renderItemAsPrimary(
-                    new ParticipantController.Item(
-                            remoteParticipant.getSid(),
-                            remoteParticipant.getIdentity(),
-                            remoteVideoTrack,
-                            muted,
-                            false));
-            RemoteParticipantListener listener =
-                    new RemoteParticipantListener(primaryView, remoteParticipant.getSid());
-            remoteParticipant.setListener(listener);
-        } else {
-            mParticipantController.addThumb(
-                    remoteParticipant.getSid(),
-                    remoteParticipant.getIdentity(),
-                    remoteVideoTrack,
-                    muted,
-                    false);
-
-            RemoteParticipantListener listener =
-                    new RemoteParticipantListener(
-                            mParticipantController.getThumb(
-                                    remoteParticipant.getSid(), remoteVideoTrack),
-                            remoteParticipant.getSid());
-            remoteParticipant.setListener(listener);
-        }
-    }
-
-    /**
-     * Sets new item to render as primary view and moves existing primary view item to thumbs view.
-     *
-     * @param item New item to be rendered in primary view
-     */
-    private void renderItemAsPrimary(ParticipantController.Item item) {
-        // nothing to click while not in room
-        if (room == null) return;
-
-        // no need to renderer if same item clicked
-        ParticipantController.Item old = mParticipantController.getPrimaryItem();
-        if (old != null && item.sid.equals(old.sid) && item.videoTrack == old.videoTrack) return;
-
-        // add back old participant to thumbs
-        if (old != null) {
-
-            if (old.sid.equals(localParticipantSid)) {
-
-                // toggle local participant state
-                int state =
-                        old.videoTrack == null
-                                ? ParticipantView.State.NO_VIDEO
-                                : ParticipantView.State.VIDEO;
-                mParticipantController.updateThumb(old.sid, old.videoTrack, state);
-                mParticipantController.updateThumb(old.sid, old.videoTrack, old.mirror);
-
-            } else {
-
-                // add thumb for remote participant
-                RemoteParticipant remoteParticipant = getRemoteParticipant(old);
-                if (remoteParticipant != null) {
-                    mParticipantController.addThumb(
-                            old.sid, old.identity, old.videoTrack, old.muted, old.mirror);
-                    RemoteParticipantListener listener =
-                            new RemoteParticipantListener(
-                                    mParticipantController.getThumb(old.sid, old.videoTrack),
-                                    remoteParticipant.getSid());
-                    remoteParticipant.setListener(listener);
-                }
-            }
-        }
-
-        // handle new primary participant click
-        mParticipantController.renderAsPrimary(item);
-
-        RemoteParticipant remoteParticipant = getRemoteParticipant(item);
-        if (remoteParticipant != null) {
-            ParticipantPrimaryView primaryView = mParticipantController.getPrimaryView();
-            RemoteParticipantListener listener =
-                    new RemoteParticipantListener(primaryView, remoteParticipant.getSid());
-            remoteParticipant.setListener(listener);
-        }
-
-        if (item.sid.equals(localParticipantSid)) {
-
-            // toggle local participant state and hide his badge
-            mParticipantController.updateThumb(
-                    item.sid, item.videoTrack, ParticipantView.State.SELECTED);
-            mParticipantController.getPrimaryView().showIdentityBadge(false);
-        } else {
-
-            // remove remote participant thumb
-            mParticipantController.removeThumb(item);
-        }
-    }
-
-    private @Nullable RemoteParticipant getRemoteParticipant(ParticipantController.Item item) {
-        RemoteParticipant remoteParticipant = null;
-
-        for (RemoteParticipant temp : room.getRemoteParticipants()) {
-            if (temp.getSid().equals(item.sid)) remoteParticipant = temp;
-        }
-
-        return remoteParticipant;
-    }
-
-    /** Removes all participant thumbs and push local camera as primary with empty sid. */
-    private void removeAllParticipants() {
-        if (room != null) {
-            mParticipantController.removeAllThumbs();
-            mParticipantController.removePrimary();
-
-            renderLocalParticipantStub();
-        }
-    }
-
-    /**
-     * Remove single remoteParticipant thumbs and all it associated thumbs. If rendered as primary
-     * remoteParticipant, primary view switches to local video track.
-     *
-     * @param remoteParticipant recently disconnected remoteParticipant.¬
-     */
-    private void removeParticipant(RemoteParticipant remoteParticipant) {
-
-        if (mParticipantController.getPrimaryItem().sid.equals(remoteParticipant.getSid())) {
-
-            // render local video if primary remoteParticipant has gone
-            mParticipantController.getThumb(localParticipantSid, cameraVideoTrack).callOnClick();
-        }
-
-        mParticipantController.removeThumbs(remoteParticipant.getSid());
-    }
-
-    /**
-     * Remove the video track and mark the track to be restored when going to the settings screen or
-     * going to the background
-     */
-    private void removeCameraTrack() {
-        if (cameraVideoTrack != null) {
-            if (localParticipant != null) {
-                localParticipant.unpublishTrack(cameraVideoTrack);
-            }
-            cameraVideoTrack.release();
-            restoreLocalVideoCameraTrack = true;
-            cameraVideoTrack = null;
-        }
-    }
-
-    /** Try to restore camera video track after going to the settings screen or background */
-    private void restoreCameraTrack() {
-        if (restoreLocalVideoCameraTrack) {
-            obtainVideoConstraints();
-            setupLocalVideoTrack();
-            renderLocalParticipantStub();
-            restoreLocalVideoCameraTrack = false;
-        }
-    }
+//    private void addParticipantVideoTrack(
+//            RemoteParticipant remoteParticipant,
+//            boolean muted,
+//            RemoteVideoTrack remoteVideoTrack,
+//            boolean renderAsPrimary) {
+//        if (renderAsPrimary) {
+//            ParticipantPrimaryView primaryView = mParticipantController.getPrimaryView();
+//
+//            renderItemAsPrimary(
+//                    new ParticipantController.Item(
+//                            remoteParticipant.getSid(),
+//                            remoteParticipant.getIdentity(),
+//                            remoteVideoTrack,
+//                            muted,
+//                            false));
+//            RemoteParticipantListener listener =
+//                    new RemoteParticipantListener(primaryView, remoteParticipant.getSid());
+//            remoteParticipant.setListener(listener);
+//        } else {
+//            mParticipantController.addThumb(
+//                    remoteParticipant.getSid(),
+//                    remoteParticipant.getIdentity(),
+//                    remoteVideoTrack,
+//                    muted,
+//                    false);
+//
+//            RemoteParticipantListener listener =
+//                    new RemoteParticipantListener(
+//                            mParticipantController.getThumb(
+//                                    remoteParticipant.getSid(), remoteVideoTrack),
+//                            remoteParticipant.getSid());
+//            remoteParticipant.setListener(listener);
+//        }
+//    }
+//
+//    /**
+//     * Sets new item to render as primary view and moves existing primary view item to thumbs view.
+//     *
+//     * @param item New item to be rendered in primary view
+//     */
+//    private void renderItemAsPrimary(ParticipantController.Item item) {
+//        // nothing to click while not in room
+//        if (room == null) return;
+//
+//        // no need to renderer if same item clicked
+//        ParticipantController.Item old = mParticipantController.getPrimaryItem();
+//        if (old != null && item.sid.equals(old.sid) && item.videoTrack == old.videoTrack) return;
+//
+//        // add back old participant to thumbs
+//        if (old != null) {
+//
+//            if (old.sid.equals(localParticipantSid)) {
+//
+//                // toggle local participant state
+//                int state =
+//                        old.videoTrack == null
+//                                ? ParticipantView.State.NO_VIDEO
+//                                : ParticipantView.State.VIDEO;
+//                mParticipantController.updateThumb(old.sid, old.videoTrack, state);
+//                mParticipantController.updateThumb(old.sid, old.videoTrack, old.mirror);
+//
+//            } else {
+//
+//                // add thumb for remote participant
+//                RemoteParticipant remoteParticipant = getRemoteParticipant(old);
+//                if (remoteParticipant != null) {
+//                    mParticipantController.addThumb(
+//                            old.sid, old.identity, old.videoTrack, old.muted, old.mirror);
+//                    RemoteParticipantListener listener =
+//                            new RemoteParticipantListener(
+//                                    mParticipantController.getThumb(old.sid, old.videoTrack),
+//                                    remoteParticipant.getSid());
+//                    remoteParticipant.setListener(listener);
+//                }
+//            }
+//        }
+//
+//        // handle new primary participant click
+//        mParticipantController.renderAsPrimary(item);
+//
+//        RemoteParticipant remoteParticipant = getRemoteParticipant(item);
+//        if (remoteParticipant != null) {
+//            ParticipantPrimaryView primaryView = mParticipantController.getPrimaryView();
+//            RemoteParticipantListener listener =
+//                    new RemoteParticipantListener(primaryView, remoteParticipant.getSid());
+//            remoteParticipant.setListener(listener);
+//        }
+//
+//        if (item.sid.equals(localParticipantSid)) {
+//
+//            // toggle local participant state and hide his badge
+//            mParticipantController.updateThumb(
+//                    item.sid, item.videoTrack, ParticipantView.State.SELECTED);
+//            mParticipantController.getPrimaryView().showIdentityBadge(false);
+//        } else {
+//
+//            // remove remote participant thumb
+//            mParticipantController.removeThumb(item);
+//        }
+//    }
+//
+//    private @Nullable RemoteParticipant getRemoteParticipant(ParticipantController.Item item) {
+//        RemoteParticipant remoteParticipant = null;
+//
+//        for (RemoteParticipant temp : room.getRemoteParticipants()) {
+//            if (temp.getSid().equals(item.sid)) remoteParticipant = temp;
+//        }
+//
+//        return remoteParticipant;
+//    }
+//
+//    /** Removes all participant thumbs and push local camera as primary with empty sid. */
+//    private void removeAllParticipants() {
+//        if (room != null) {
+//            mParticipantController.removeAllThumbs();
+//            mParticipantController.removePrimary();
+//
+//            renderLocalParticipantStub();
+//        }
+//    }
+//
+//    /**
+//     * Remove single remoteParticipant thumbs and all it associated thumbs. If rendered as primary
+//     * remoteParticipant, primary view switches to local video track.
+//     *
+//     * @param remoteParticipant recently disconnected remoteParticipant.¬
+//     */
+//    private void removeParticipant(RemoteParticipant remoteParticipant) {
+//
+//        if (mParticipantController.getPrimaryItem().sid.equals(remoteParticipant.getSid())) {
+//
+//            // render local video if primary remoteParticipant has gone
+//            mParticipantController.getThumb(localParticipantSid, cameraVideoTrack).callOnClick();
+//        }
+//
+//        mParticipantController.removeThumbs(remoteParticipant.getSid());
+//    }
+//
+//    /**
+//     * Remove the video track and mark the track to be restored when going to the settings screen or
+//     * going to the background
+//     */
+//    private void removeCameraTrack() {
+//        if (cameraVideoTrack != null) {
+//            if (localParticipant != null) {
+//                localParticipant.unpublishTrack(cameraVideoTrack);
+//            }
+//            cameraVideoTrack.release();
+//            restoreLocalVideoCameraTrack = true;
+//            cameraVideoTrack = null;
+//        }
+//    }
+//
+//    /** Try to restore camera video track after going to the settings screen or background */
+//    private void restoreCameraTrack() {
+//        if (restoreLocalVideoCameraTrack) {
+//            obtainVideoConstraints();
+//            setupLocalVideoTrack();
+//            renderLocalParticipantStub();
+//            restoreLocalVideoCameraTrack = false;
+//        }
+//    }
 }

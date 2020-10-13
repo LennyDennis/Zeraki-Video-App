@@ -106,11 +106,11 @@ abstract class ParticipantView extends FrameLayout implements VideoRenderer {
         initParams(context, attrs);
     }
 
-    public void setIdentity(String identity) {
-        this.identity = identity;
-        videoIdentity.setText(identity);
-        selectedIdentity.setText(identity);
-    }
+//    public void setIdentity(String identity) {
+//        this.identity = identity;
+//        videoIdentity.setText(identity);
+//        selectedIdentity.setText(identity);
+//    }
 
     public void setState(int state) {
         this.state = state;
@@ -126,13 +126,13 @@ abstract class ParticipantView extends FrameLayout implements VideoRenderer {
                 break;
             case State.NO_VIDEO:
             case State.SELECTED:
-                videoLayout.setVisibility(GONE);
-                videoIdentity.setVisibility(GONE);
-                videoView.setVisibility(GONE);
-
-                selectedLayout.setVisibility(VISIBLE);
-                stubImage.setVisibility(VISIBLE);
-                selectedIdentity.setVisibility(VISIBLE);
+//                videoLayout.setVisibility(GONE);
+//                videoIdentity.setVisibility(GONE);
+//                videoView.setVisibility(GONE);
+//
+//                selectedLayout.setVisibility(VISIBLE);
+//                stubImage.setVisibility(VISIBLE);
+//                selectedIdentity.setVisibility(VISIBLE);
                 break;
             default:
                 break;
@@ -141,12 +141,12 @@ abstract class ParticipantView extends FrameLayout implements VideoRenderer {
 
     public void setMirror(boolean mirror) {
         this.mirror = mirror;
-        videoView.setMirror(this.mirror);
+//        videoView.setMirror(this.mirror);
     }
 
     void setScaleType(int scaleType) {
         this.scaleType = scaleType;
-        videoView.setVideoScaleType(VideoScaleType.values()[this.scaleType]);
+//        videoView.setVideoScaleType(VideoScaleType.values()[this.scaleType]);
     }
 
     public void setMuted(boolean muted) {
