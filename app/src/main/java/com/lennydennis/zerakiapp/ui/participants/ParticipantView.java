@@ -31,7 +31,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StyleRes;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import butterknife.BindView;
 
 import com.lennydennis.zerakiapp.R;
 import com.twilio.video.I420Frame;
@@ -40,6 +39,8 @@ import com.twilio.video.VideoScaleType;
 import com.twilio.video.VideoTextureView;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+
+import butterknife.BindView;
 
 abstract class ParticipantView extends FrameLayout implements VideoRenderer {
 
@@ -51,9 +52,9 @@ abstract class ParticipantView extends FrameLayout implements VideoRenderer {
     @BindView(R.id.participant_video_layout)
     ConstraintLayout videoLayout;
 
-//    @Nullable
-//    @BindView(R.id.participant_badge)
-//    ConstraintLayout identityBadge;
+    @Nullable
+    @BindView(R.id.participant_badge)
+    ConstraintLayout identityBadge;
 
     @BindView(R.id.participant_video_identity)
     TextView videoIdentity;
@@ -67,17 +68,17 @@ abstract class ParticipantView extends FrameLayout implements VideoRenderer {
     @BindView(R.id.participant_stub_image)
     ImageView stubImage;
 
-//    @BindView(R.id.dominant_speaker_img)
-//    ImageView dominantSpeakerImg;
-//
-//    @BindView(R.id.network_quality_level_img)
-//    ImageView networkQualityLevelImg;
+    @BindView(R.id.dominant_speaker_img)
+    ImageView dominantSpeakerImg;
+
+    @BindView(R.id.network_quality_level_img)
+    ImageView networkQualityLevelImg;
 
     @BindView(R.id.participant_selected_identity)
     TextView selectedIdentity;
 
-//    @BindView(R.id.participant_no_audio)
-//    ImageView audioToggle;
+    @BindView(R.id.participant_no_audio)
+    ImageView audioToggle;
 
     public ParticipantView(@NonNull Context context) {
         super(context);
@@ -148,9 +149,9 @@ abstract class ParticipantView extends FrameLayout implements VideoRenderer {
         videoView.setVideoScaleType(VideoScaleType.values()[this.scaleType]);
     }
 
-//    public void setMuted(boolean muted) {
-//        audioToggle.setVisibility(muted ? VISIBLE : GONE);
-//    }
+    public void setMuted(boolean muted) {
+        audioToggle.setVisibility(muted ? VISIBLE : GONE);
+    }
 
     @Override
     public void renderFrame(@NonNull I420Frame frame) {

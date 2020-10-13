@@ -21,4 +21,5 @@
     <string name="stop_screen_share">Stop screen share</string>
     <string name="failed_to_add_screen_video_track">Failed to add screen video track</string>
     <string name="screen_capture_error">Screen Capture Error</string>
+    <string name="settings_screen_enable_network_quality_level_description">Network Quality Values</string>
 </resources>

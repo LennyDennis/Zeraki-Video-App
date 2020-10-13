@@ -46,7 +46,6 @@ public class ParticipantController {
     private ItemClickListener listener;
 
     ParticipantController(ViewGroup thumbsViewContainer, ParticipantPrimaryView primaryVideoView) {
-
         this.thumbsViewContainer = thumbsViewContainer;
         this.primaryView = primaryVideoView;
     }
