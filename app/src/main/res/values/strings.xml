@@ -29,6 +29,7 @@
     <string name="resume_video">Resume Video</string>
     <string name="camera_video_track">Camera</string>
     <string name="failed_to_add_camera_video_track">Failed to add camera video track</string>
+    <string name="screen_video_track">Video</string>
 
     <string-array name="settings_screen_environment_array">
         <item>Production</item>
