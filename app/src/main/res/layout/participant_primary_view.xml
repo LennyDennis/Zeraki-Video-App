@@ -47,7 +47,6 @@
         android:id="@+id/participant_selected_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="invisible"
         android:background="@color/participantSelectedBackground">
 
         <ImageView

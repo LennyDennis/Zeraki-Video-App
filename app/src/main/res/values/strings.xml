@@ -22,4 +22,50 @@
     <string name="failed_to_add_screen_video_track">Failed to add screen video track</string>
     <string name="screen_capture_error">Screen Capture Error</string>
     <string name="settings_screen_enable_network_quality_level_description">Network Quality Values</string>
+    <string name="permissions_required">Permission rewuired</string>
+    <string name="pause_audio">Pause Audio</string>
+    <string name="resume_audio">Resume Audio</string>
+    <string name="pause_video">Pause Video</string>
+    <string name="resume_video">Resume Video</string>
+    <string name="camera_video_track">Camera</string>
+    <string name="failed_to_add_camera_video_track">Failed to add camera video track</string>
+
+    <string-array name="settings_screen_environment_array">
+        <item>Production</item>
+        <item>Staging</item>
+        <item>Development</item>
+    </string-array>
+
+    <string-array name="settings_screen_environment_array_values">
+        <item>production</item>
+        <item>stage</item>
+        <item>dev</item>
+    </string-array>
+
+    <string-array name="settings_screen_topology_array">
+        <item>group</item>
+        <item>group-small</item>
+        <item>peer-to-peer</item>
+    </string-array>
+    <string-array name="settings_screen_aspect_ratio_array">
+        <item>4:3</item>
+        <item>16:9</item>
+        <item>11:9</item>
+    </string-array>
+
+    <string-array name="settings_screen_aspect_ratio_array_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="settings_screen_video_dimensions_array">
+        <item>352x288</item>
+        <item>640x480</item>
+        <item>800x480</item>
+        <item>960x540</item>
+        <item>1280x720</item>
+        <item>1280x960</item>
+        <item>1440x1080</item>
+        <item>1920x1080</item>
+    </string-array>
 </resources>
