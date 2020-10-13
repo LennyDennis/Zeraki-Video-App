@@ -18,34 +18,26 @@
             android:layout_height="match_parent"
             app:overlaySurface="false"/>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/participant_badge"
+        <TextView
+            android:id="@+id/participant_video_identity"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:background="@drawable/name_background"
             android:paddingLeft="20dp"
             android:paddingRight="20dp"
             android:paddingBottom="5dp"
             android:paddingTop="5dp"
-            android:background="@drawable/name_background"
+            android:text="Lenny dennis"
             android:layout_marginTop="80dp"
             android:layout_marginLeft="10dp"
             android:layout_marginStart="10dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
 
-            <TextView
-                android:id="@+id/participant_video_identity"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:textSize="14sp"
-                android:text="Lenny"
-                android:textColor="@android:color/white"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -55,6 +47,7 @@
         android:id="@+id/participant_selected_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:visibility="invisible"
         android:background="@color/participantSelectedBackground">
 
         <ImageView

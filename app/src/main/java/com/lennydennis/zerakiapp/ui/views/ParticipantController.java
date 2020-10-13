@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package com.lennydennis.zerakiapp.ui.participants;
+package com.lennydennis.zerakiapp.ui.views;
 
+import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.annotation.Nullable;
 
 import com.twilio.video.VideoTrack;
 
@@ -24,7 +27,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-/** ParticipantController is main controlling party for rendering participants. */
+/**
+ * ParticipantController is main controlling party for rendering participants.
+ */
 public class ParticipantController {
 
     /**
@@ -33,19 +38,27 @@ public class ParticipantController {
      */
     private Item primaryItem;
 
-    /** Primary video track. */
+    /**
+     * Primary video track.
+     */
     private ParticipantPrimaryView primaryView;
 
-    /** RemoteParticipant thumb view group, where participants are added or removed from. */
+    /**
+     * RemoteParticipant thumb view group, where participants are added or removed from.
+     */
     private ViewGroup thumbsViewContainer;
 
-    /** Relationship collection - item (data) -> thumb. */
+    /**
+     * Relationship collection - item (data) -> thumb.
+     */
     private Map<Item, ParticipantView> thumbs = new HashMap<>();
 
-    /** Each participant thumb click listener. */
+    /**
+     * Each participant thumb click listener.
+     */
     private ItemClickListener listener;
 
-    ParticipantController(ViewGroup thumbsViewContainer, ParticipantPrimaryView primaryVideoView) {
+    public ParticipantController(ViewGroup thumbsViewContainer, ParticipantPrimaryView primaryVideoView) {
         this.thumbsViewContainer = thumbsViewContainer;
         this.primaryView = primaryVideoView;
     }
@@ -65,10 +78,10 @@ public class ParticipantController {
     /**
      * Create new participant thumb from data.
      *
-     * @param sid unique participant identifier.
-     * @param identity participant name to display.
+     * @param sid        unique participant identifier.
+     * @param identity   participant name to display.
      * @param videoTrack participant video to display or NULL for empty thumbs.
-     * @param muted participant audio state.
+     * @param muted      participant audio state.
      */
     void addThumb(
             String sid, String identity, VideoTrack videoTrack, boolean muted, boolean mirror) {
@@ -97,7 +110,7 @@ public class ParticipantController {
     /**
      * Update participant thumb with video track.
      *
-     * @param sid unique participant identifier.
+     * @param sid      unique participant identifier.
      * @param oldVideo video track to replace.
      * @param newVideo new video track to insert.
      */
@@ -122,9 +135,9 @@ public class ParticipantController {
     /**
      * Update participant video track thumb with state.
      *
-     * @param sid unique participant identifier.
+     * @param sid        unique participant identifier.
      * @param videoTrack target video track.
-     * @param state new thumb state.
+     * @param state      new thumb state.
      */
     void updateThumb(String sid, VideoTrack videoTrack, @ParticipantView.State int state) {
         Item target = findItem(sid, videoTrack);
@@ -147,9 +160,9 @@ public class ParticipantController {
     /**
      * Update participant video track thumb with mirroring.
      *
-     * @param sid unique participant identifier.
+     * @param sid        unique participant identifier.
      * @param videoTrack target video track.
-     * @param mirror enable/disable mirror.
+     * @param mirror     enable/disable mirror.
      */
     void updateThumb(String sid, VideoTrack videoTrack, boolean mirror) {
         Item target = findItem(sid, videoTrack);
@@ -164,14 +177,14 @@ public class ParticipantController {
     /**
      * Update all participant thumbs with audio state.
      *
-     * @param sid unique participant identifier.
+     * @param sid   unique participant identifier.
      * @param muted new audio state.
      */
     void updateThumbs(String sid, boolean muted) {
         for (Map.Entry<Item, ParticipantView> entry : thumbs.entrySet()) {
             if (entry.getKey().sid.equals(sid)) {
                 entry.getKey().muted = muted;
-                //entry.getValue().setMuted(muted);
+                entry.getValue().setMuted(muted);
             }
         }
     }
@@ -179,7 +192,7 @@ public class ParticipantController {
     /**
      * Add new participant thumb or update old instance.
      *
-     * @param sid unique participant identifier.
+     * @param sid      unique participant identifier.
      * @param identity participant name to display.
      * @param oldVideo video track to replace.
      * @param newVideo new video track to insert.
@@ -200,7 +213,7 @@ public class ParticipantController {
     /**
      * Remove participant video track thumb.
      *
-     * @param sid unique participant identifier.
+     * @param sid        unique participant identifier.
      * @param videoTrack target video track.
      */
     void removeThumb(String sid, VideoTrack videoTrack) {
@@ -241,8 +254,8 @@ public class ParticipantController {
     /**
      * Remove participant thumb or leave empty (no video) thumb if nothing left.
      *
-     * @param sid unique participant identifier.
-     * @param identity participant name to display.
+     * @param sid        unique participant identifier.
+     * @param identity   participant name to display.
      * @param videoTrack target video track.
      */
     void removeOrEmptyThumb(String sid, String identity, VideoTrack videoTrack) {
@@ -259,11 +272,11 @@ public class ParticipantController {
     /**
      * Get participant video track thumb instance.
      *
-     * @param sid unique participant identifier.
+     * @param sid        unique participant identifier.
      * @param videoTrack target video track.
      * @return participant thumb instance.
      */
-    public  ParticipantView getThumb(String sid, VideoTrack videoTrack) {
+    public ParticipantView getThumb(String sid, VideoTrack videoTrack) {
         for (Map.Entry<Item, ParticipantView> entry : thumbs.entrySet()) {
             if (entry.getKey() != null
                     && entry.getKey().sid.equals(sid)
@@ -274,7 +287,9 @@ public class ParticipantController {
         return null;
     }
 
-    /** Remove all thumbs for all participants. */
+    /**
+     * Remove all thumbs for all participants.
+     */
     public void removeAllThumbs() {
         for (Map.Entry<Item, ParticipantView> entry : thumbs.entrySet()) {
             thumbsViewContainer.removeView(entry.getValue());
@@ -292,11 +307,11 @@ public class ParticipantController {
     /**
      * Render participant as primary participant from data.
      *
-     * @param sid unique participant identifier.
-     * @param identity participant name to display.
+     * @param sid        unique participant identifier.
+     * @param identity   participant name to display.
      * @param videoTrack participant video to display or NULL for empty thumbs.
-     * @param muted participant audio state.
-     * @param mirror enable/disable mirroring for video track.
+     * @param muted      participant audio state.
+     * @param mirror     enable/disable mirroring for video track.
      */
     void renderAsPrimary(
             String sid, String identity, VideoTrack videoTrack, boolean muted, boolean mirror) {
@@ -310,9 +325,9 @@ public class ParticipantController {
         }
 
         primaryItem = newItem;
-       // primaryView.setIdentity(primaryItem.identity);
+        primaryView.setIdentity(primaryItem.identity);
         primaryView.showIdentityBadge(true);
-       // primaryView.setMuted(primaryItem.muted);
+        primaryView.setMuted(primaryItem.muted);
         primaryView.setMirror(mirror);
 
         if (primaryItem.videoTrack != null) {
@@ -324,7 +339,9 @@ public class ParticipantController {
         }
     }
 
-    /** Remove primary participant. */
+    /**
+     * Remove primary participant.
+     */
     public void removePrimary() {
         removeRender(primaryItem.videoTrack, primaryView);
         // TODO: temp state
@@ -354,19 +371,19 @@ public class ParticipantController {
         this.listener = listener;
     }
 
-//    void setDominantSpeaker(@Nullable ParticipantView participantView) {
-//        clearDominantSpeaker();
-//        if (participantView != null) {
-//            participantView.dominantSpeakerImg.setVisibility(View.VISIBLE);
-//        }
-//    }
-//
-//    private void clearDominantSpeaker() {
-//        getPrimaryView().dominantSpeakerImg.setVisibility(View.GONE);
-//        for (Map.Entry<Item, ParticipantView> entry : thumbs.entrySet()) {
-//            entry.getValue().dominantSpeakerImg.setVisibility(View.GONE);
-//        }
-//    }
+    void setDominantSpeaker(@Nullable ParticipantView participantView) {
+        clearDominantSpeaker();
+        if (participantView != null) {
+            participantView.dominantSpeakerImg.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void clearDominantSpeaker() {
+        getPrimaryView().dominantSpeakerImg.setVisibility(View.GONE);
+        for (Map.Entry<Item, ParticipantView> entry : thumbs.entrySet()) {
+            entry.getValue().dominantSpeakerImg.setVisibility(View.GONE);
+        }
+    }
 
     private boolean hasThumb(String sid, VideoTrack videoTrack) {
         return getThumb(sid, videoTrack) != null;
@@ -384,8 +401,8 @@ public class ParticipantController {
     private ParticipantView createThumb(final Item item) {
         final ParticipantView view = new ParticipantThumbView(thumbsViewContainer.getContext());
 
-      //  view.setIdentity(item.identity);
-        //view.setMuted(item.muted);
+        view.setIdentity(item.identity);
+        view.setMuted(item.muted);
         view.setMirror(item.mirror);
 
         view.setOnClickListener(
@@ -401,7 +418,6 @@ public class ParticipantController {
         } else {
             view.setState(ParticipantView.State.NO_VIDEO);
         }
-
         return view;
     }
 
@@ -420,26 +436,17 @@ public class ParticipantController {
         videoTrack.removeRenderer(view);
     }
 
-    /** RemoteParticipant information data holder. */
+    /**
+     * RemoteParticipant information data holder.
+     */
     public static class Item {
-
-        /** RemoteParticipant unique identifier. */
         String sid;
-
-        /** RemoteParticipant name. */
         String identity;
-
-        /** RemoteParticipant video track. */
         VideoTrack videoTrack;
-
-        /** RemoteParticipant audio state. */
         boolean muted;
-
-        /** Video track mirroring enabled/disabled. */
         boolean mirror;
 
         public Item(String sid, String identity, VideoTrack videoTrack, boolean muted, boolean mirror) {
-
             this.sid = sid;
             this.identity = identity;
             this.videoTrack = videoTrack;

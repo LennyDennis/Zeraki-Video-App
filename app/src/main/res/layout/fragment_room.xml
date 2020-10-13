@@ -11,7 +11,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <include layout="@layout/content_room" />
+        <include
+            android:id="@+id/include_primary_view"
+            layout="@layout/content_room" />
 
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/lobby_toolbar"
@@ -47,19 +49,21 @@
                 android:text="Joining room"
                 android:textColor="@color/joinLayoutTextColor"
                 android:textSize="18sp"
+                android:visibility="gone"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/join_message"
+                app:layout_constraintEnd_toStartOf="@+id/join_room_name"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintHorizontal_chainStyle="packed"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
-                android:id="@+id/join_message"
+                android:id="@+id/join_room_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:text=" Test"
+                android:visibility="gone"
                 android:textColor="@color/joinLayoutTextColor"
                 android:textSize="24sp"
                 android:textStyle="bold"
@@ -85,11 +89,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/fab_margin"
                 android:background="@drawable/roundbutton"
+                android:visibility="gone"
                 app:backgroundTint="@color/fabBackground"
                 app:srcCompat="@drawable/ic_baseline_flip_camera_ios_24" />
 
             <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/disable_camera"
+                android:id="@+id/local_video_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/fab_margin"
@@ -98,7 +103,7 @@
                 app:srcCompat="@drawable/ic_videocam_white_24px" />
 
             <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/disable_mic"
+                android:id="@+id/local_mic_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/fab_margin"
@@ -120,6 +125,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/fab_margin"
+                android:visibility="gone"
                 android:background="@drawable/roundbutton"
                 app:backgroundTint="@android:color/holo_red_dark"
                 app:srcCompat="@drawable/ic_call_end_white_24px" />

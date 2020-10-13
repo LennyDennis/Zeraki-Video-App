@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.lennydennis.zerakiapp.ui.participants;
+package com.lennydennis.zerakiapp.ui.views;
 
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -22,48 +22,53 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
+import androidx.core.content.ContextCompat;
+import butterknife.ButterKnife;
 
 import com.lennydennis.zerakiapp.R;
 
-import butterknife.ButterKnife;
+public class ParticipantThumbView extends ParticipantView {
 
-public class ParticipantPrimaryView extends ParticipantView {
-
-    public ParticipantPrimaryView(Context context) {
+    public ParticipantThumbView(Context context) {
         super(context);
         init(context);
     }
 
-    public ParticipantPrimaryView(Context context, AttributeSet attrs) {
+    public ParticipantThumbView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init(context);
     }
 
-    public ParticipantPrimaryView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public ParticipantThumbView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init(context);
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public ParticipantPrimaryView(
+    public ParticipantThumbView(
             Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init(context);
     }
 
-    public void showIdentityBadge(boolean show) {
-        if (identityBadge != null) {
-            identityBadge.setVisibility(show ? VISIBLE : GONE);
-        }
-    }
-
     private void init(Context context) {
-        View view = LayoutInflater.from(context).inflate(R.layout.participant_primary_view, this);
+        View view = LayoutInflater.from(context).inflate(R.layout.participant_view, this);
         ButterKnife.bind(this, view);
 
         //setIdentity(identity);
         setState(state);
         setMirror(mirror);
         setScaleType(scaleType);
+    }
+
+    @Override
+    public void setState(int state) {
+        super.setState(state);
+
+        int resId = R.drawable.participant_background;
+        if (state == State.SELECTED) {
+            resId = R.drawable.participant_selected_background;
+        }
+        selectedLayout.setBackground(ContextCompat.getDrawable(getContext(), resId));
     }
 }
