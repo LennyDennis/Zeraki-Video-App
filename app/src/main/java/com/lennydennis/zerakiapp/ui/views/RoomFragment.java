@@ -272,7 +272,7 @@ public class RoomFragment extends Fragment {
 
         ((AppCompatActivity) requireActivity()).setSupportActionBar(mFragmentRoomBinding.toolbar);
 
-        obtainVideoConstraints();
+        //obtainVideoConstraints();
 
         //initializeUI();
 
@@ -362,7 +362,7 @@ public class RoomFragment extends Fragment {
                             && cameraPermissionGranted
                             && writeExternalStoragePermissionGranted;
 
-            if (permissionsGranted) {
+            if (true) {
                 setupLocalMedia();
             } else {
                 Snackbar.make(mPrimaryVideoView, R.string.permissions_required, Snackbar.LENGTH_LONG)
@@ -1158,7 +1158,7 @@ public class RoomFragment extends Fragment {
      */
     private void restoreCameraTrack() {
         if (restoreLocalVideoCameraTrack) {
-            obtainVideoConstraints();
+          //  obtainVideoConstraints();
             setupLocalVideoTrack();
             renderLocalParticipantStub();
             restoreLocalVideoCameraTrack = false;

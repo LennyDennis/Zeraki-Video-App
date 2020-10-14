@@ -325,7 +325,7 @@ public class ParticipantController {
         }
 
         primaryItem = newItem;
-        primaryView.setIdentity(primaryItem.identity);
+       // primaryView.setIdentity(primaryItem.identity);
         primaryView.showIdentityBadge(true);
         primaryView.setMuted(primaryItem.muted);
         primaryView.setMirror(mirror);

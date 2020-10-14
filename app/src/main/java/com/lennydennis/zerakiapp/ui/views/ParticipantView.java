@@ -52,6 +52,10 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
     @BindView(R.id.participant_video_layout)
     ConstraintLayout videoLayout;
 
+    @Nullable
+    @BindView(R.id.participant_badge)
+    ConstraintLayout identityBadge;
+
     @BindView(R.id.participant_video_identity)
     TextView videoIdentity;
 
@@ -104,8 +108,8 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
 
     public void setIdentity(String identity) {
         this.identity = identity;
-        videoIdentity.setText(identity);
-        selectedIdentity.setText(identity);
+//        videoIdentity.setText(identity);
+     //   selectedIdentity.setText(identity);
     }
 
     public void setState(int state) {
@@ -137,7 +141,7 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
 
     public void setMirror(boolean mirror) {
         this.mirror = mirror;
-        videoView.setMirror(this.mirror);
+//        videoView.setMirror(this.mirror);
     }
 
     void setScaleType(int scaleType) {
@@ -146,7 +150,7 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
     }
 
     public void setMuted(boolean muted) {
-        audioToggle.setVisibility(muted ? VISIBLE : GONE);
+//        audioToggle.setVisibility(muted ? VISIBLE : GONE);
     }
 
     @Override
