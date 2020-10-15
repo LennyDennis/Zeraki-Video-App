@@ -118,7 +118,6 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
         this.state = state;
         switch (state) {
             case State.VIDEO:
-                identityBadge.setVisibility(GONE);
                 selectedLayout.setVisibility(GONE);
                 stubImage.setVisibility(GONE);
                 selectedIdentity.setVisibility(GONE);

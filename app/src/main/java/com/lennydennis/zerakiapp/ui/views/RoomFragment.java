@@ -22,7 +22,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
@@ -46,10 +45,10 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.PermissionChecker;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
@@ -58,7 +57,6 @@ import com.google.android.material.snackbar.Snackbar;
 import com.lennydennis.zerakiapp.R;
 import com.lennydennis.zerakiapp.databinding.FragmentRoomBinding;
 import com.lennydennis.zerakiapp.model.AccessTokenState;
-import com.lennydennis.zerakiapp.model.Preferences;
 import com.lennydennis.zerakiapp.ui.dialog.RoomDialog;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel.RoomViewModelFactory;
@@ -86,7 +84,6 @@ import com.twilio.video.ScreenCapturer;
 import com.twilio.video.TwilioException;
 import com.twilio.video.VideoConstraints;
 import com.twilio.video.VideoDimensions;
-import com.twilio.video.VideoRenderer;
 import com.twilio.video.VideoTrack;
 import com.twilio.video.app.ui.room.RoomManager;
 
@@ -96,9 +93,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.inject.Inject;
-
 import kotlinx.coroutines.Dispatchers;
+import timber.log.Timber;
 
 import static com.twilio.video.AspectRatio.ASPECT_RATIO_11_9;
 import static com.twilio.video.AspectRatio.ASPECT_RATIO_16_9;
@@ -142,10 +138,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private RoomFragmentViewModel mRoomFragmentViewModel;
     private Context mContext;
     private ParticipantPrimaryView mPrimaryVideoView;
-    private LocalAudioTrack mLocalAudioTrack;
-    private CameraCapturerCompat mCameraCapturerCompat;
-    private LocalVideoTrack mLocalVideoTrack;
-    private VideoRenderer mLocalVideoView;
     private ImageButton mLocalVideoButton;
     private ImageButton mLocalMicButton;
     private ImageButton mVideoCallButton;
@@ -159,7 +151,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private Boolean mDisconnectedFromOnDestroy;
     private int mSavedVolumeControlStream;
     private AudioSwitch mAudioSwitch;
-    private LocalVideoTrack mScreenVideoTrack;
     private ParticipantController mParticipantController;
     private ImageButton mEndCallButton;
     private com.lennydennis.zerakiapp.databinding.ContentRoomBinding mIncludePrimaryView;
@@ -168,11 +159,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private ConstraintLayout mJoinMessageLayout;
     private TextView mJoinStatus;
     private TextView mJoinRoomName;
+    private String roomName;
 
     private MenuItem screenCaptureMenuItem;
 
     private AudioManager audioManager;
-    private int savedAudioMode = AudioManager.MODE_INVALID;
+    private int savedAudioMode = AudioManager.MODE_NORMAL;
     private int savedVolumeControlStream;
     private boolean savedIsMicrophoneMute = false;
     private boolean savedIsSpeakerPhoneOn = false;
@@ -182,12 +174,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private String localParticipantSid = LOCAL_PARTICIPANT_STUB_SID;
     private Room room;
     private VideoConstraints videoConstraints;
-    private LocalAudioTrack localAudioTrack;
-    private LocalVideoTrack cameraVideoTrack;
+    private LocalAudioTrack mLocalAudioTrack;
+    private LocalVideoTrack mCameraVideoTrack;
     private boolean restoreLocalVideoCameraTrack = false;
-    private LocalVideoTrack screenVideoTrack;
-    private CameraCapturerCompat cameraCapturer;
-    private ScreenCapturer screenCapturer;
+    private LocalVideoTrack mScreenVideoTrack;
+    private CameraCapturerCompat mCapturerCompat;
+    private ScreenCapturer mScreenCapturer;
     private final ScreenCapturer.Listener screenCapturerListener =
             new ScreenCapturer.Listener() {
                 @Override
@@ -212,14 +204,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     // https://issues.corp.twilio.com/browse/AHOYAPPS-473
     private Map<String, NetworkQualityLevel> networkQualityLevels = new HashMap<>();
 
-//    @Inject TokenService tokenService;
-
-    @Inject
-    SharedPreferences sharedPreferences;
-
-    @Inject
-    RoomManager roomManager;
-
     /**
      * Coordinates participant thumbs and primary participant rendering.
      */
@@ -231,6 +215,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private Boolean isAudioMuted = false;
     private Boolean isVideoMuted = false;
     private String mRoomType;
+    private ImageButton mSwitchCameraButton;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -252,6 +237,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         mJoinMessageLayout = mFragmentRoomBinding.joinStatusLayout;
         mJoinStatus = mFragmentRoomBinding.joinStatus;
         mJoinRoomName = mFragmentRoomBinding.joinRoomName;
+        mSwitchCameraButton = mFragmentRoomBinding.switchCamera;
 
         mIncludePrimaryView = mFragmentRoomBinding.includePrimaryView;
         mPrimaryVideoView = mIncludePrimaryView.primaryVideo;
@@ -294,28 +280,23 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         mLocalMicButton.setVisibility(View.VISIBLE);
         mLocalMicButton.setOnClickListener(toggleMicClickListener());
 
+        mSwitchCameraButton.setOnClickListener(switchCameraClickListener());
 
-        // mEndCallButton.setOnClickListener(switchCameraClickListener());
+        mEndCallButton.setOnClickListener(disconnectCallClickListener());
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-//        private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
-//        Corou
-        RoomManager roomManager1 = new RoomManager(mContext,CoroutineScope(Dispatchers.getIO()));
 
-        RoomViewModelFactory factory = new RoomViewModelFactory(roomManager1);
+        RoomManager roomManager = new RoomManager(mContext, CoroutineScope(Dispatchers.getIO()));
+        RoomViewModelFactory factory = new RoomViewModelFactory(roomManager);
         mRoomFragmentViewModel = new ViewModelProvider(this, factory).get(RoomFragmentViewModel.class);
-
-        // mRoomFragmentViewModel = new ViewModelProvider(this).get(RoomFragmentViewModel.class);
     }
 
     @Override
     public void onStart() {
         super.onStart();
-
-        //checkIntentURI();
 
         restoreCameraTrack();
 
@@ -331,17 +312,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 //        setTitle(displayName);
     }
 
-//    private boolean checkIntentURI() {
-//        boolean isAppLinkProvided = false;
-//        Uri uri = getIntent().getData();
-//        roomName = new UriRoomParser(new UriWrapper(uri)).parseRoom();
-//        if (roomName != null) {
-//            roomEditText.setText(roomName);
-//            isAppLinkProvided = true;
-//        }
-//        return isAppLinkProvided;
-//    }
-
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         outState.putBoolean(IS_AUDIO_MUTED, isAudioMuted);
@@ -354,17 +324,17 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         // Reset the speakerphone
         audioManager.setSpeakerphoneOn(false);
         // Teardown tracks
-        if (localAudioTrack != null) {
-            localAudioTrack.release();
-            localAudioTrack = null;
+        if (mLocalAudioTrack != null) {
+            mLocalAudioTrack.release();
+            mLocalAudioTrack = null;
         }
-        if (cameraVideoTrack != null) {
-            cameraVideoTrack.release();
-            cameraVideoTrack = null;
+        if (mCameraVideoTrack != null) {
+            mCameraVideoTrack.release();
+            mCameraVideoTrack = null;
         }
-        if (screenVideoTrack != null) {
-            screenVideoTrack.release();
-            screenVideoTrack = null;
+        if (mScreenVideoTrack != null) {
+            mScreenVideoTrack.release();
+            mScreenVideoTrack = null;
         }
         // dispose any token requests if needed
         //rxDisposables.clear();
@@ -404,7 +374,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
         screenCaptureMenuItem = menu.findItem(R.id.share_screen_menu_item);
         requestPermissions();
-        // roomViewModel.getRoomEvents().observe(this, this::bindRoomEvents);
+        mRoomFragmentViewModel.getRoomEvents().observe(this, this::bindRoomEvents);
 
     }
 
@@ -418,14 +388,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-//            case R.id.switch_camera_menu_item:
-//                switchCamera();
-//                return true;
             case R.id.share_screen_menu_item:
                 String shareScreen = getString(R.string.share_screen);
 
                 if (item.getTitle().equals(shareScreen)) {
-                    if (screenCapturer == null) {
+                    if (mScreenCapturer == null) {
                         requestScreenCapturePermission();
                     } else {
                         startScreenCapture();
@@ -451,7 +418,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                         .show();
                 return;
             }
-            screenCapturer = new ScreenCapturer(mContext, resultCode, data, screenCapturerListener);
+            mScreenCapturer = new ScreenCapturer(mContext, resultCode, data, screenCapturerListener);
             startScreenCapture();
         }
     }
@@ -464,77 +431,44 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 //        connect.setEnabled(!TextUtils.isEmpty(text));
 //    }
 //
-//    @OnClick(R.id.connect)
-//    void connectButtonClick() {
-//        InputUtils.hideKeyboard(this);
-//        if (!didAcceptPermissions()) {
-//            Snackbar.make(mPrimaryVideoView, R.string.permissions_required, Snackbar.LENGTH_SHORT)
-//                    .show();
-//            return;
-//        }
-//        connect.setEnabled(false);
-//        // obtain room name
-//
-//        Editable text = roomEditText.getText();
-//        if (text != null) {
-//            roomName = text.toString();
-//
-//            roomViewModel.connectToRoom(displayName, roomName, isNetworkQualityEnabled());
-//        }
-//    }
-//
-//    @OnClick(R.id.disconnect)
-//    void disconnectButtonClick() {
-//        roomViewModel.disconnect();
-//        stopScreenCapture();
-//    }
-
 
     private View.OnClickListener toggleVideoClickListener() {
         return v -> {
             // remember old video reference for updating thumb in room
-            VideoTrack oldVideo = cameraVideoTrack;
+            VideoTrack oldVideo = mCameraVideoTrack;
 
-            if (cameraVideoTrack == null) {
+            if (mCameraVideoTrack == null) {
                 isVideoMuted = false;
 
                 // add local camera track
-                cameraVideoTrack =
+                mCameraVideoTrack =
                         LocalVideoTrack.create(
                                 mContext,
                                 true,
-                                cameraCapturer.getVideoCapturer(),
+                                mCapturerCompat.getVideoCapturer(),
                                 videoConstraints,
                                 CAMERA_TRACK_NAME);
-                if (localParticipant != null && cameraVideoTrack != null) {
-                    localParticipant.publishTrack(cameraVideoTrack);
 
-                    // enable video settings
-//                switchCameraMenuItem.setVisible(cameraVideoTrack.isEnabled());
-//                pauseVideoMenuItem.setTitle(
-//                        cameraVideoTrack.isEnabled()
-//                                ? R.string.pause_video
-//                                : R.string.resume_video);
+                if (localParticipant != null && mCameraVideoTrack != null) {
+                    localParticipant.publishTrack(mCameraVideoTrack);
                 }
+
             } else {
                 isVideoMuted = true;
                 // remove local camera track
-                cameraVideoTrack.removeRenderer(mPrimaryVideoView);
+                mCameraVideoTrack.removeRenderer(mPrimaryVideoView);
 
                 if (localParticipant != null) {
-                    localParticipant.unpublishTrack(cameraVideoTrack);
+                    localParticipant.unpublishTrack(mCameraVideoTrack);
                 }
-                cameraVideoTrack.release();
-                cameraVideoTrack = null;
-
-                // disable video settings
-//            switchCameraMenuItem.setVisible(false);
+                mCameraVideoTrack.release();
+                mCameraVideoTrack = null;
             }
 
             if (room != null && room.getState() == CONNECTED) {
 
                 // update local participant thumb
-                participantController.updateThumb(localParticipantSid, oldVideo, cameraVideoTrack);
+                participantController.updateThumb(localParticipantSid, oldVideo, mCameraVideoTrack);
 
                 if (participantController.getPrimaryItem().sid.equals(localParticipantSid)) {
 
@@ -542,28 +476,76 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     participantController.renderAsPrimary(
                             localParticipantSid,
                             getString(R.string.you),
-                            cameraVideoTrack,
-                            localAudioTrack == null,
-                            cameraCapturer.getCameraSource()
+                            mCameraVideoTrack,
+                            mLocalAudioTrack == null,
+                            mCapturerCompat.getCameraSource()
                                     == CameraCapturer.CameraSource.FRONT_CAMERA);
 
                     participantController.getPrimaryView().showIdentityBadge(false);
 
                     // update thumb state
                     participantController.updateThumb(
-                            localParticipantSid, cameraVideoTrack, ParticipantView.State.SELECTED);
+                            localParticipantSid, mCameraVideoTrack, ParticipantView.State.SELECTED);
                 }
 
             } else {
-
                 renderLocalParticipantStub();
             }
 
             // update toggle button icon
             mLocalVideoButton.setImageResource(
-                    cameraVideoTrack != null
+                    mCameraVideoTrack != null
                             ? R.drawable.ic_videocam_white_24px
                             : R.drawable.ic_baseline_videocam_off_24);
+        };
+    }
+
+    private View.OnClickListener toggleMicClickListener() {
+        return v -> {
+            int icon;
+            if (mLocalAudioTrack == null) {
+                isAudioMuted = false;
+                mLocalAudioTrack = LocalAudioTrack.create(mContext, true, MICROPHONE_TRACK_NAME);
+                if (localParticipant != null && mLocalAudioTrack != null) {
+                    localParticipant.publishTrack(mLocalAudioTrack);
+                }
+                icon = R.drawable.ic_mic_white_24px;
+            } else {
+                isAudioMuted = true;
+                if (localParticipant != null) {
+                    localParticipant.unpublishTrack(mLocalAudioTrack);
+                }
+                mLocalAudioTrack.release();
+                mLocalAudioTrack = null;
+                icon = R.drawable.ic_baseline_mic_off_24;
+            }
+            mLocalMicButton.setImageResource(icon);
+        };
+    }
+
+
+    private View.OnClickListener switchCameraClickListener() {
+        return v -> {
+            if (mCapturerCompat != null) {
+
+                boolean mirror =
+                        mCapturerCompat.getCameraSource() == CameraCapturer.CameraSource.BACK_CAMERA;
+
+                mCapturerCompat.switchCamera();
+
+                if (participantController.getPrimaryItem().sid.equals(localParticipantSid)) {
+                    participantController.updatePrimaryThumb(mirror);
+                } else {
+                    participantController.updateThumb(localParticipantSid, mCameraVideoTrack, mirror);
+                }
+            }
+        };
+    }
+
+    private View.OnClickListener disconnectCallClickListener() {
+        return v -> {
+            mRoomFragmentViewModel.disconnect();
+            stopScreenCapture();
         };
     }
 
@@ -604,80 +586,56 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         Toast.makeText(getContext(), throwable.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
     }
 
-
-    private View.OnClickListener toggleMicClickListener() {
-        return v -> {
-            int icon;
-            if (localAudioTrack == null) {
-                isAudioMuted = false;
-                localAudioTrack = LocalAudioTrack.create(mContext, true, MICROPHONE_TRACK_NAME);
-                if (localParticipant != null && localAudioTrack != null) {
-                    localParticipant.publishTrack(localAudioTrack);
-                }
-                icon = R.drawable.ic_mic_white_24px;
-            } else {
-                isAudioMuted = true;
-                if (localParticipant != null) {
-                    localParticipant.unpublishTrack(localAudioTrack);
-                }
-                localAudioTrack.release();
-                localAudioTrack = null;
-                icon = R.drawable.ic_baseline_mic_off_24;
-            }
-            mLocalMicButton.setImageResource(icon);
-        };
-    }
-
-    private void obtainVideoConstraints() {
-        Log.d(TAG, "Collecting video constraints...");
-
-        VideoConstraints.Builder builder = new VideoConstraints.Builder();
-
-        // setup aspect ratio
-        String aspectRatio = sharedPreferences.getString(Preferences.ASPECT_RATIO, "0");
-        if (aspectRatio != null) {
-            int aspectRatioIndex = Integer.parseInt(aspectRatio);
-            builder.aspectRatio(aspectRatios[aspectRatioIndex]);
-            Log.d(TAG,
-                    "Aspect ratio : %s" +
-                            getResources()
-                                    .getStringArray(R.array.settings_screen_aspect_ratio_array)[
-                                    aspectRatioIndex]);
-        }
-
-        // setup video dimensions
-        int minVideoDim = sharedPreferences.getInt(Preferences.MIN_VIDEO_DIMENSIONS, 0);
-        int maxVideoDim =
-                sharedPreferences.getInt(
-                        Preferences.MAX_VIDEO_DIMENSIONS, videoDimensions.length - 1);
-
-        if (maxVideoDim != -1 && minVideoDim != -1) {
-            builder.minVideoDimensions(videoDimensions[minVideoDim]);
-            builder.maxVideoDimensions(videoDimensions[maxVideoDim]);
-        }
-
-        Log.d(TAG,
-                "Video dimensions: %s - %s" +
-                        getResources()
-                                .getStringArray(R.array.settings_screen_video_dimensions_array)[
-                                minVideoDim] + " " +
-                        getResources()
-                                .getStringArray(R.array.settings_screen_video_dimensions_array)[
-                                maxVideoDim]);
-
-        // setup fps
-        int minFps = sharedPreferences.getInt(Preferences.MIN_FPS, 0);
-        int maxFps = sharedPreferences.getInt(Preferences.MAX_FPS, 30);
-
-        if (maxFps != -1 && minFps != -1) {
-            builder.minFps(minFps);
-            builder.maxFps(maxFps);
-        }
-
-        Log.d(TAG, "Frames per second: " + minFps + maxFps);
-
-        videoConstraints = builder.build();
-    }
+//    private void obtainVideoConstraints() {
+//        Log.d(TAG, "Collecting video constraints...");
+//
+//        VideoConstraints.Builder builder = new VideoConstraints.Builder();
+//
+//        // setup aspect ratio
+//        String aspectRatio = sharedPreferences.getString(Preferences.ASPECT_RATIO, "0");
+//        if (aspectRatio != null) {
+//            int aspectRatioIndex = Integer.parseInt(aspectRatio);
+//            builder.aspectRatio(aspectRatios[aspectRatioIndex]);
+//            Log.d(TAG,
+//                    "Aspect ratio : %s" +
+//                            getResources()
+//                                    .getStringArray(R.array.settings_screen_aspect_ratio_array)[
+//                                    aspectRatioIndex]);
+//        }
+//
+//        // setup video dimensions
+//        int minVideoDim = sharedPreferences.getInt(Preferences.MIN_VIDEO_DIMENSIONS, 0);
+//        int maxVideoDim =
+//                sharedPreferences.getInt(
+//                        Preferences.MAX_VIDEO_DIMENSIONS, videoDimensions.length - 1);
+//
+//        if (maxVideoDim != -1 && minVideoDim != -1) {
+//            builder.minVideoDimensions(videoDimensions[minVideoDim]);
+//            builder.maxVideoDimensions(videoDimensions[maxVideoDim]);
+//        }
+//
+//        Log.d(TAG,
+//                "Video dimensions: %s - %s" +
+//                        getResources()
+//                                .getStringArray(R.array.settings_screen_video_dimensions_array)[
+//                                minVideoDim] + " " +
+//                        getResources()
+//                                .getStringArray(R.array.settings_screen_video_dimensions_array)[
+//                                maxVideoDim]);
+//
+//        // setup fps
+//        int minFps = sharedPreferences.getInt(Preferences.MIN_FPS, 0);
+//        int maxFps = sharedPreferences.getInt(Preferences.MAX_FPS, 30);
+//
+//        if (maxFps != -1 && minFps != -1) {
+//            builder.minFps(minFps);
+//            builder.maxFps(maxFps);
+//        }
+//
+//        Log.d(TAG, "Frames per second: " + minFps + maxFps);
+//
+//        videoConstraints = builder.build();
+//    }
 
     private void requestPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -712,16 +670,16 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
      * Initialize local media and provide stub participant for primary view.
      */
     private void setupLocalMedia() {
-        if (localAudioTrack == null && !isAudioMuted) {
-            localAudioTrack = LocalAudioTrack.create(mContext, true, MICROPHONE_TRACK_NAME);
+        if (mLocalAudioTrack == null && !isAudioMuted) {
+            mLocalAudioTrack = LocalAudioTrack.create(mContext, true, MICROPHONE_TRACK_NAME);
             if (room != null && localParticipant != null)
-                localParticipant.publishTrack(localAudioTrack);
+                localParticipant.publishTrack(mLocalAudioTrack);
         }
-        if (cameraVideoTrack == null && !isVideoMuted) {
+        if (mCameraVideoTrack == null && !isVideoMuted) {
             setupLocalVideoTrack();
             renderLocalParticipantStub();
             if (room != null && localParticipant != null)
-                localParticipant.publishTrack(cameraVideoTrack);
+                localParticipant.publishTrack(mCameraVideoTrack);
         }
     }
 
@@ -731,21 +689,21 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private void setupLocalVideoTrack() {
 
         // initialize capturer only once if needed
-        if (cameraCapturer == null) {
-            cameraCapturer =
+        if (mCapturerCompat == null) {
+            mCapturerCompat =
                     new CameraCapturerCompat(mContext, CameraCapturer.CameraSource.FRONT_CAMERA);
         }
 
-        cameraVideoTrack =
+        mCameraVideoTrack =
                 LocalVideoTrack.create(
                         mContext,
                         true,
-                        cameraCapturer.getVideoCapturer(),
+                        mCapturerCompat.getVideoCapturer(),
                         videoConstraints,
                         CAMERA_TRACK_NAME);
-        if (cameraVideoTrack != null) {
+        if (mCameraVideoTrack != null) {
             localVideoTrackNames.put(
-                    cameraVideoTrack.getName(), getString(R.string.camera_video_track));
+                    mCameraVideoTrack.getName(), getString(R.string.camera_video_track));
         } else {
             Snackbar.make(
                     mPrimaryVideoView,
@@ -765,98 +723,86 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         participantController.renderAsPrimary(
                 localParticipantSid,
                 getString(R.string.you),
-                cameraVideoTrack,
-                localAudioTrack == null,
-                cameraCapturer.getCameraSource() == CameraCapturer.CameraSource.FRONT_CAMERA);
+                mCameraVideoTrack,
+                mLocalAudioTrack == null,
+                mCapturerCompat.getCameraSource() == CameraCapturer.CameraSource.FRONT_CAMERA);
 
         mPrimaryVideoView.showIdentityBadge(false);
     }
 
-//    private void updateUi(Room room, RoomEvent roomEvent) {
-//        int disconnectButtonState = View.GONE;
-//        int chatButtonState = View.GONE;
-//        int joinRoomLayoutState = View.VISIBLE;
-//        int joinStatusLayoutState = View.GONE;
-//
-//        boolean settingsMenuItemState = true;
-//        boolean screenCaptureMenuItemState = false;
-//
-//       // Editable roomEditable = roomEditText.getText();
-//       // boolean connectButtonEnabled = roomEditable != null && !roomEditable.toString().isEmpty();
-//
-//        roomName = displayName;
-//        String toolbarTitle = displayName;
-//        String joinStatus = "";
-//        int recordingWarningVisibility = View.GONE;
-//
-//        if (roomEvent instanceof RoomEvent.Connecting) {
-//            disconnectButtonState = View.VISIBLE;
-//            chatButtonState = View.VISIBLE;
-//
-//            joinRoomLayoutState = View.GONE;
-//            joinStatusLayoutState = View.VISIBLE;
-//            recordingWarningVisibility = View.VISIBLE;
-//            settingsMenuItemState = false;
-//
-////            connectButtonEnabled = false;
-////
-////            if (roomEditable != null) {
-////                roomName = roomEditable.toString();
-////            }
-//            joinStatus = "Joining...";
-//        }
-//
-//        if (room != null) {
-//            switch (room.getState()) {
-//                case CONNECTED:
-//                    disconnectButtonState = View.VISIBLE;
-//                    chatButtonState = View.VISIBLE;
-//                    joinRoomLayoutState = View.GONE;
-//                    joinStatusLayoutState = View.GONE;
-//                    settingsMenuItemState = false;
-//                    screenCaptureMenuItemState = true;
-//
-//                   // connectButtonEnabled = false;
-//
-//                    roomName = room.getName();
-//                    toolbarTitle = roomName;
-//                    joinStatus = "";
-//
-//                    break;
-//                case DISCONNECTED:
-//                  //  connectButtonEnabled = true;
-//                    screenCaptureMenuItemState = false;
-//                    break;
-//            }
-//        }
-//
-//        // Check mute state
-//        if (isAudioMuted) {
-//            mLocalMicButton.setImageResource(R.drawable.ic_baseline_mic_off_24);
-//        }
-//        if (isVideoMuted) {
-//            mLocalVideoButton.setImageResource(R.drawable.ic_baseline_videocam_off_24);
-//        }
-//
-//        mEndCallButton.setVisibility(disconnectButtonState);
-//        mJoinMessageLayout.setVisibility(joinStatusLayoutState);
-//       // mVideoCallButton.setEnabled(connectButtonEnabled);
-//
-//        setTitle(toolbarTitle);
-//
-//        mJoinStatus.setText(joinStatus);
-//        mJoinRoomName.setText(roomName);
-//
-//        // TODO: Remove when we use a Service to obtainTokenAndConnect to a room
-//        if (settingsMenuItem != null) {
-//            settingsMenuItem.setVisible(settingsMenuItemState);
-//        }
-//
-//        if (screenCaptureMenuItem != null
-//                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//            screenCaptureMenuItem.setVisible(screenCaptureMenuItemState);
-//        }
-//    }
+    private void updateUI(Room room, RoomEvent roomEvent) {
+        int disconnectButtonState = View.GONE;
+        int joinRoomLayoutState = View.VISIBLE;
+        int joinStatusLayoutState = View.GONE;
+
+        boolean screenCaptureMenuItemState = false;
+
+        boolean connectButtonEnabled = mRoomName != null && !mRoomName.isEmpty();
+
+        mRoomName = displayName;
+        String toolbarTitle = displayName;
+        String joinStatus = "";
+        int recordingWarningVisibility = View.GONE;
+
+        if (roomEvent instanceof RoomEvent.Connecting) {
+            disconnectButtonState = View.VISIBLE;
+
+            joinRoomLayoutState = View.GONE;
+            joinStatusLayoutState = View.VISIBLE;
+            recordingWarningVisibility = View.VISIBLE;
+
+            connectButtonEnabled = false;
+
+            if (mRoomName != null) {
+                roomName = mRoomName;
+            }
+            joinStatus = "Joining...";
+        }
+
+        if (room != null) {
+            switch (room.getState()) {
+                case CONNECTED:
+                    disconnectButtonState = View.VISIBLE;
+                    joinRoomLayoutState = View.GONE;
+                    joinStatusLayoutState = View.GONE;
+                    screenCaptureMenuItemState = true;
+
+                    connectButtonEnabled = false;
+
+                    mRoomName = room.getName();
+                    toolbarTitle = mRoomName;
+                    joinStatus = "";
+
+                    break;
+                case DISCONNECTED:
+                    connectButtonEnabled = true;
+                    screenCaptureMenuItemState = false;
+                    break;
+            }
+        }
+
+        // Check mute state
+        if (isAudioMuted) {
+            mLocalMicButton.setImageResource(R.drawable.ic_baseline_mic_off_24);
+        }
+        if (isVideoMuted) {
+            mLocalVideoButton.setImageResource(R.drawable.ic_baseline_videocam_off_24);
+        }
+
+        mEndCallButton.setVisibility(disconnectButtonState);
+        mJoinMessageLayout.setVisibility(joinStatusLayoutState);
+        mVideoCallButton.setEnabled(connectButtonEnabled);
+
+        //setTitle(toolbarTitle);
+
+        mJoinStatus.setText(joinStatus);
+        mJoinRoomName.setText(mRoomName);
+
+        if (screenCaptureMenuItem != null
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            screenCaptureMenuItem.setVisible(screenCaptureMenuItemState);
+        }
+    }
 
     private void setTitle(String toolbarTitle) {
 //        ActionBar actionBar = getSupportActionBar();
@@ -865,46 +811,30 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 //        }
     }
 
-    private void switchCamera() {
-        if (cameraCapturer != null) {
-
-            boolean mirror =
-                    cameraCapturer.getCameraSource() == CameraCapturer.CameraSource.BACK_CAMERA;
-
-            cameraCapturer.switchCamera();
-
-            if (participantController.getPrimaryItem().sid.equals(localParticipantSid)) {
-                participantController.updatePrimaryThumb(mirror);
-            } else {
-                participantController.updateThumb(localParticipantSid, cameraVideoTrack, mirror);
-            }
+    private void setAudioFocus(boolean setFocus) {
+        if (setFocus) {
+            savedIsSpeakerPhoneOn = audioManager.isSpeakerphoneOn();
+            savedIsMicrophoneMute = audioManager.isMicrophoneMute();
+            setMicrophoneMute();
+            savedAudioMode = audioManager.getMode();
+            // Request audio focus before making any device switch.
+            requestAudioFocus();
+            /*
+             * Start by setting MODE_IN_COMMUNICATION as default audio mode. It is
+             * required to be in this mode when playout and/or recording starts for
+             * best possible VoIP performance.
+             * Some devices have difficulties with speaker mode if this is not set.
+             */
+            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+            setVolumeControl(true);
+        } else {
+            audioManager.setMode(savedAudioMode);
+            audioManager.abandonAudioFocus(null);
+            audioManager.setMicrophoneMute(savedIsMicrophoneMute);
+            audioManager.setSpeakerphoneOn(savedIsSpeakerPhoneOn);
+            setVolumeControl(false);
         }
     }
-
-//    private void setAudioFocus(boolean setFocus) {
-//        if (setFocus) {
-//            savedIsSpeakerPhoneOn = audioManager.isSpeakerphoneOn();
-//            savedIsMicrophoneMute = audioManager.isMicrophoneMute();
-//            setMicrophoneMute();
-//            savedAudioMode = audioManager.getMode();
-//            // Request audio focus before making any device switch.
-//            requestAudioFocus();
-//            /*
-//             * Start by setting MODE_IN_COMMUNICATION as default audio mode. It is
-//             * required to be in this mode when playout and/or recording starts for
-//             * best possible VoIP performance.
-//             * Some devices have difficulties with speaker mode if this is not set.
-//             */
-//            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-//            setVolumeControl(true);
-//        } else {
-//            audioManager.setMode(savedAudioMode);
-//            audioManager.abandonAudioFocus(null);
-//            audioManager.setMicrophoneMute(savedIsMicrophoneMute);
-//            audioManager.setSpeakerphoneOn(savedIsSpeakerPhoneOn);
-//            setVolumeControl(false);
-//        }
-//    }
 
     private void requestAudioFocus() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -961,16 +891,16 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     }
 
     private void startScreenCapture() {
-        screenVideoTrack = LocalVideoTrack.create(mContext, true, screenCapturer, SCREEN_TRACK_NAME);
+        mScreenVideoTrack = LocalVideoTrack.create(mContext, true, mScreenCapturer, SCREEN_TRACK_NAME);
 
-        if (screenVideoTrack != null) {
+        if (mScreenVideoTrack != null) {
             screenCaptureMenuItem.setIcon(R.drawable.ic_stop_screen_share_white_24dp);
             screenCaptureMenuItem.setTitle(R.string.stop_screen_share);
             localVideoTrackNames.put(
-                    screenVideoTrack.getName(), getString(R.string.screen_video_track));
+                    mScreenVideoTrack.getName(), getString(R.string.screen_video_track));
 
             if (localParticipant != null) {
-                localParticipant.publishTrack(screenVideoTrack);
+                localParticipant.publishTrack(mScreenVideoTrack);
             }
         } else {
             Snackbar.make(
@@ -983,13 +913,13 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     }
 
     private void stopScreenCapture() {
-        if (screenVideoTrack != null) {
+        if (mScreenVideoTrack != null) {
             if (localParticipant != null) {
-                localParticipant.unpublishTrack(screenVideoTrack);
+                localParticipant.unpublishTrack(mScreenVideoTrack);
             }
-            screenVideoTrack.release();
-            localVideoTrackNames.remove(screenVideoTrack.getName());
-            screenVideoTrack = null;
+            mScreenVideoTrack.release();
+            localVideoTrackNames.remove(mScreenVideoTrack.getName());
+            mScreenVideoTrack = null;
             screenCaptureMenuItem.setIcon(R.drawable.ic_screen_share_white_24dp);
             screenCaptureMenuItem.setTitle(R.string.share_screen);
         }
@@ -1161,7 +1091,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         if (participantController.getPrimaryItem().sid.equals(remoteParticipant.getSid())) {
 
             // render local video if primary remoteParticipant has gone
-            participantController.getThumb(localParticipantSid, cameraVideoTrack).callOnClick();
+            participantController.getThumb(localParticipantSid, mCameraVideoTrack).callOnClick();
         }
 
         participantController.removeThumbs(remoteParticipant.getSid());
@@ -1172,13 +1102,13 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
      * going to the background
      */
     private void removeCameraTrack() {
-        if (cameraVideoTrack != null) {
+        if (mCameraVideoTrack != null) {
             if (localParticipant != null) {
-                localParticipant.unpublishTrack(cameraVideoTrack);
+                localParticipant.unpublishTrack(mCameraVideoTrack);
             }
-            cameraVideoTrack.release();
+            mCameraVideoTrack.release();
             restoreLocalVideoCameraTrack = true;
-            cameraVideoTrack = null;
+            mCameraVideoTrack = null;
         }
     }
 
@@ -1220,13 +1150,13 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
     private void publishLocalTracks() {
         if (localParticipant != null) {
-            if (cameraVideoTrack != null) {
-                Log.d(TAG, "Camera track: " + cameraVideoTrack);
-                localParticipant.publishTrack(cameraVideoTrack);
+            if (mCameraVideoTrack != null) {
+                Log.d(TAG, "Camera track: " + mCameraVideoTrack);
+                localParticipant.publishTrack(mCameraVideoTrack);
             }
 
-            if (localAudioTrack != null) {
-                localParticipant.publishTrack(localAudioTrack);
+            if (mLocalAudioTrack != null) {
+                localParticipant.publishTrack(mLocalAudioTrack);
             }
         }
     }
@@ -1241,14 +1171,14 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             participantController.addThumb(
                     localParticipantSid,
                     getString(R.string.you),
-                    cameraVideoTrack,
-                    localAudioTrack == null,
-                    cameraCapturer.getCameraSource() == CameraCapturer.CameraSource.FRONT_CAMERA);
+                    mCameraVideoTrack,
+                    mLocalAudioTrack == null,
+                    mCapturerCompat.getCameraSource() == CameraCapturer.CameraSource.FRONT_CAMERA);
 
             localParticipant.setListener(
                     new LocalParticipantListener(
-                            participantController.getThumb(localParticipantSid, cameraVideoTrack)));
-            participantController.getThumb(localParticipantSid, cameraVideoTrack).callOnClick();
+                            participantController.getThumb(localParticipantSid, mCameraVideoTrack)));
+            participantController.getThumb(localParticipantSid, mCameraVideoTrack).callOnClick();
 
             // add existing room participants thumbs
             boolean isFirstParticipant = true;
@@ -1276,108 +1206,95 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         }
     }
 
+    private void bindRoomEvents(RoomEvent roomEvent) {
+        if (roomEvent != null) {
+            this.room = roomEvent.getRoom();
+            if (room != null) {
+                requestPermissions();
+                if (roomEvent instanceof RoomEvent.RoomState) {
+                    Room.State state = room.getState();
+                    switch (state) {
+                        case CONNECTED:
+                            initializeRoom();
+                            break;
+                        case DISCONNECTED:
+                            removeAllParticipants();
+                            localParticipant = null;
+                            room = null;
+                            localParticipantSid = LOCAL_PARTICIPANT_STUB_SID;
+                            setAudioFocus(false);
+                            networkQualityLevels.clear();
+                            break;
+                    }
+                }
+                if (roomEvent instanceof RoomEvent.ConnectFailure) {
+                    new AlertDialog.Builder(mContext, R.style.AppTheme_Dialog)
+                            .setTitle(getString(R.string.room_screen_connection_failure_title))
+                            .setMessage(getString(R.string.room_screen_connection_failure_message))
+                            .setNeutralButton("OK", null)
+                            .show();
+                    removeAllParticipants();
+                    setAudioFocus(false);
+                }
+                if (roomEvent instanceof RoomEvent.ParticipantConnected) {
+                    boolean renderAsPrimary = room.getRemoteParticipants().size() == 1;
+                    addParticipant(
+                            ((RoomEvent.ParticipantConnected) roomEvent).getRemoteParticipant(),
+                            renderAsPrimary);
 
-//    private void bindRoomEvents(RoomEvent roomEvent) {
-//        if (roomEvent != null) {
-//            this.room = roomEvent.getRoom();
-//            if (room != null) {
-//                requestPermissions();
-//                if (roomEvent instanceof RoomState) {
-//                    State state = room.getState();
-//                    switch (state) {
-//                        case CONNECTED:
-//                            initializeRoom();
-//                            break;
-//                        case DISCONNECTED:
-//                            removeAllParticipants();
-//                            localParticipant = null;
-//                            room = null;
-//                            localParticipantSid = LOCAL_PARTICIPANT_STUB_SID;
-//                            setAudioFocus(false);
-//                            networkQualityLevels.clear();
-//                            break;
-//                    }
-//                }
-//                if (roomEvent instanceof ConnectFailure) {
-//                    new AlertDialog.Builder(this, R.style.AppTheme_Dialog)
-//                            .setTitle(getString(R.string.room_screen_connection_failure_title))
-//                            .setMessage(getString(R.string.room_screen_connection_failure_message))
-//                            .setNeutralButton("OK", null)
-//                            .show();
-//                    removeAllParticipants();
-//                    setAudioFocus(false);
-//                }
-//                if (roomEvent instanceof ParticipantConnected) {
-//                    boolean renderAsPrimary = room.getRemoteParticipants().size() == 1;
-//                    addParticipant(
-//                            ((ParticipantConnected) roomEvent).getRemoteParticipant(),
-//                            renderAsPrimary);
-//
-//                }
-//                if (roomEvent instanceof ParticipantDisconnected) {
-//                    RemoteParticipant remoteParticipant =
-//                            ((ParticipantDisconnected) roomEvent).getRemoteParticipant();
-//                    networkQualityLevels.remove(remoteParticipant.getSid());
-//                    removeParticipant(remoteParticipant);
-//
-//                }
-//                if (roomEvent instanceof DominantSpeakerChanged) {
-//                    RemoteParticipant remoteParticipant =
-//                            ((DominantSpeakerChanged) roomEvent).getRemoteParticipant();
-//
-//                    if (remoteParticipant == null) {
-//                        participantController.setDominantSpeaker(null);
-//                        return;
-//                    }
-//                    VideoTrack videoTrack =
-//                            (remoteParticipant.getRemoteVideoTracks().size() > 0)
-//                                    ? remoteParticipant
-//                                    .getRemoteVideoTracks()
-//                                    .get(0)
-//                                    .getRemoteVideoTrack()
-//                                    : null;
-//                    if (videoTrack != null) {
-//                        ParticipantView participantView =
-//                                participantController.getThumb(
-//                                        remoteParticipant.getSid(), videoTrack);
-//                        if (participantView != null) {
-//                            participantController.setDominantSpeaker(participantView);
-//                        } else {
-//                            remoteParticipant.getIdentity();
-//                            ParticipantPrimaryView primaryParticipantView =
-//                                    participantController.getPrimaryView();
-//                            if (primaryParticipantView.identity.equals(
-//                                    remoteParticipant.getIdentity())) {
-//                                participantController.setDominantSpeaker(
-//                                        participantController.getPrimaryView());
-//                            } else {
-//                                participantController.setDominantSpeaker(null);
-//                            }
-//                        }
-//                    }
-//                }
-//            } else {
+                }
+                if (roomEvent instanceof RoomEvent.ParticipantDisconnected) {
+                    RemoteParticipant remoteParticipant =
+                            ((RoomEvent.ParticipantDisconnected) roomEvent).getRemoteParticipant();
+                    networkQualityLevels.remove(remoteParticipant.getSid());
+                    removeParticipant(remoteParticipant);
+
+                }
+                if (roomEvent instanceof RoomEvent.DominantSpeakerChanged) {
+                    RemoteParticipant remoteParticipant =
+                            ((RoomEvent.DominantSpeakerChanged) roomEvent).getRemoteParticipant();
+
+                    if (remoteParticipant == null) {
+                        participantController.setDominantSpeaker(null);
+                        return;
+                    }
+                    VideoTrack videoTrack =
+                            (remoteParticipant.getRemoteVideoTracks().size() > 0)
+                                    ? remoteParticipant
+                                    .getRemoteVideoTracks()
+                                    .get(0)
+                                    .getRemoteVideoTrack()
+                                    : null;
+                    if (videoTrack != null) {
+                        ParticipantView participantView =
+                                participantController.getThumb(
+                                        remoteParticipant.getSid(), videoTrack);
+                        if (participantView != null) {
+                            participantController.setDominantSpeaker(participantView);
+                        } else {
+                            remoteParticipant.getIdentity();
+                            ParticipantPrimaryView primaryParticipantView =
+                                    participantController.getPrimaryView();
+                            if (primaryParticipantView.identity.equals(
+                                    remoteParticipant.getIdentity())) {
+                                participantController.setDominantSpeaker(
+                                        participantController.getPrimaryView());
+                            } else {
+                                participantController.setDominantSpeaker(null);
+                            }
+                        }
+                    }
+                }
+            } else {
 //                if (roomEvent instanceof TokenError) {
 //                    AuthServiceError error = ((TokenError) roomEvent).getServiceError();
 //                    handleTokenError(error);
 //                }
-//            }
-//            updateUi(room, roomEvent);
-//        }
-//    }
+            }
+            updateUI(room, roomEvent);
+        }
+    }
 
-//    private void handleTokenError(AuthServiceError error) {
-//        int errorMessage =
-//                error == EXPIRED_PASSCODE_ERROR
-//                        ? R.string.room_screen_token_expired_message
-//                        : R.string.room_screen_token_retrieval_failure_message;
-//
-//        new AlertDialog.Builder(this, R.style.AppTheme_Dialog)
-//                .setTitle(getString(R.string.room_screen_connection_failure_title))
-//                .setMessage(getString(errorMessage))
-//                .setNeutralButton("OK", null)
-//                .show();
-//    }
 
     private class LocalParticipantListener implements LocalParticipant.Listener {
 
@@ -1456,12 +1373,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         public void onAudioTrackPublished(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteAudioTrackPublication remoteAudioTrackPublication) {
-            Log.e(TAG,
-                    "onAudioTrackPublished: remoteParticipant: %s, audio: %s, enabled: %b, subscribed: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteAudioTrackPublication.getTrackSid() +
-                            remoteAudioTrackPublication.isTrackEnabled() +
-                            remoteAudioTrackPublication.isTrackSubscribed());
+            Timber.i(
+                    "onAudioTrackPublished: remoteParticipant: %s, audio: %s, enabled: %b, subscribed: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteAudioTrackPublication.getTrackSid(),
+                    remoteAudioTrackPublication.isTrackEnabled(),
+                    remoteAudioTrackPublication.isTrackSubscribed());
 
             // TODO: Need design
         }
@@ -1470,12 +1387,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         public void onAudioTrackUnpublished(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteAudioTrackPublication remoteAudioTrackPublication) {
-            Log.e(TAG,
-                    "onAudioTrackUnpublished: remoteParticipant: %s, audio: %s, enabled: %b, subscribed: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteAudioTrackPublication.getTrackSid() +
-                            remoteAudioTrackPublication.isTrackEnabled() +
-                            remoteAudioTrackPublication.isTrackSubscribed());
+            Timber.i(
+                    "onAudioTrackUnpublished: remoteParticipant: %s, audio: %s, enabled: %b, subscribed: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteAudioTrackPublication.getTrackSid(),
+                    remoteAudioTrackPublication.isTrackEnabled(),
+                    remoteAudioTrackPublication.isTrackSubscribed());
             // TODO: Need design
         }
 
@@ -1483,12 +1400,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         public void onVideoTrackPublished(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteVideoTrackPublication remoteVideoTrackPublication) {
-            Log.e(TAG,
-                    "onVideoTrackPublished: remoteParticipant: %s, video: %s, enabled: %b, subscribed: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteVideoTrackPublication.getTrackSid() +
-                            remoteVideoTrackPublication.isTrackEnabled() +
-                            remoteVideoTrackPublication.isTrackSubscribed());
+            Timber.i(
+                    "onVideoTrackPublished: remoteParticipant: %s, video: %s, enabled: %b, subscribed: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteVideoTrackPublication.getTrackSid(),
+                    remoteVideoTrackPublication.isTrackEnabled(),
+                    remoteVideoTrackPublication.isTrackSubscribed());
             // TODO: Need design
         }
 
@@ -1496,12 +1413,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         public void onVideoTrackUnpublished(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteVideoTrackPublication remoteVideoTrackPublication) {
-            Log.e(TAG,
-                    "onVideoTrackUnpublished: remoteParticipant: %s, video: %s, enabled: %b, subscribed: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteVideoTrackPublication.getTrackSid() +
-                            remoteVideoTrackPublication.isTrackEnabled() +
-                            remoteVideoTrackPublication.isTrackSubscribed());
+            Timber.i(
+                    "onVideoTrackUnpublished: remoteParticipant: %s, video: %s, enabled: %b, subscribed: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteVideoTrackPublication.getTrackSid(),
+                    remoteVideoTrackPublication.isTrackEnabled(),
+                    remoteVideoTrackPublication.isTrackSubscribed());
             // TODO: Need design
         }
 
@@ -1510,12 +1427,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteAudioTrackPublication remoteAudioTrackPublication,
                 @NonNull RemoteAudioTrack remoteAudioTrack) {
-            Log.e(TAG,
-                    "onAudioTrackSubscribed: remoteParticipant: %s, audio: %s, enabled: %b, subscribed: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteAudioTrackPublication.getTrackSid() +
-                            remoteAudioTrackPublication.isTrackEnabled() +
-                            remoteAudioTrackPublication.isTrackSubscribed());
+            Timber.i(
+                    "onAudioTrackSubscribed: remoteParticipant: %s, audio: %s, enabled: %b, subscribed: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteAudioTrackPublication.getTrackSid(),
+                    remoteAudioTrackPublication.isTrackEnabled(),
+                    remoteAudioTrackPublication.isTrackSubscribed());
             boolean newAudioState = !remoteAudioTrackPublication.isTrackEnabled();
 
             if (participantController.getPrimaryItem().sid.equals(remoteParticipant.getSid())) {
@@ -1536,11 +1453,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteAudioTrackPublication remoteAudioTrackPublication,
                 @NonNull TwilioException twilioException) {
-            Log.e(TAG,
-                    "onAudioTrackSubscriptionFailed: remoteParticipant: %s, video: %s, exception: %s" +
-                            remoteParticipant.getIdentity() +
-                            remoteAudioTrackPublication.getTrackSid() +
-                            twilioException.getMessage());
+            Timber.w(
+                    "onAudioTrackSubscriptionFailed: remoteParticipant: %s, video: %s, exception: %s",
+                    remoteParticipant.getIdentity(),
+                    remoteAudioTrackPublication.getTrackSid(),
+                    twilioException.getMessage());
             // TODO: Need design
             Snackbar.make(mPrimaryVideoView, "onAudioTrackSubscriptionFailed", Snackbar.LENGTH_LONG)
                     .show();
@@ -1551,12 +1468,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteAudioTrackPublication remoteAudioTrackPublication,
                 @NonNull RemoteAudioTrack remoteAudioTrack) {
-            Log.e(TAG,
-                    "onAudioTrackUnsubscribed: remoteParticipant: %s, audio: %s, enabled: %b, subscribed: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteAudioTrackPublication.getTrackSid() +
-                            remoteAudioTrackPublication.isTrackEnabled() +
-                            remoteAudioTrackPublication.isTrackSubscribed());
+            Timber.i(
+                    "onAudioTrackUnsubscribed: remoteParticipant: %s, audio: %s, enabled: %b, subscribed: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteAudioTrackPublication.getTrackSid(),
+                    remoteAudioTrackPublication.isTrackEnabled(),
+                    remoteAudioTrackPublication.isTrackSubscribed());
 
             if (participantController.getPrimaryItem().sid.equals(remoteParticipant.getSid())) {
 
@@ -1576,12 +1493,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteVideoTrackPublication remoteVideoTrackPublication,
                 @NonNull RemoteVideoTrack remoteVideoTrack) {
-            Log.e(TAG,
-                    "onVideoTrackSubscribed: remoteParticipant: %s, video: %s, enabled: %b, subscribed: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteVideoTrackPublication.getTrackSid() +
-                            remoteVideoTrackPublication.isTrackEnabled() +
-                            remoteVideoTrackPublication.isTrackSubscribed());
+            Timber.i(
+                    "onVideoTrackSubscribed: remoteParticipant: %s, video: %s, enabled: %b, subscribed: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteVideoTrackPublication.getTrackSid(),
+                    remoteVideoTrackPublication.isTrackEnabled(),
+                    remoteVideoTrackPublication.isTrackSubscribed());
 
             ParticipantController.Item primary = participantController.getPrimaryItem();
 
@@ -1606,11 +1523,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteVideoTrackPublication remoteVideoTrackPublication,
                 @NonNull TwilioException twilioException) {
-            Log.e(TAG,
-                    "onVideoTrackSubscriptionFailed: remoteParticipant: %s, video: %s, exception: %s" +
-                            remoteParticipant.getIdentity() +
-                            remoteVideoTrackPublication.getTrackSid() +
-                            twilioException.getMessage());
+            Timber.w(
+                    "onVideoTrackSubscriptionFailed: remoteParticipant: %s, video: %s, exception: %s",
+                    remoteParticipant.getIdentity(),
+                    remoteVideoTrackPublication.getTrackSid(),
+                    twilioException.getMessage());
             // TODO: Need design
             Snackbar.make(mPrimaryVideoView, "onVideoTrackSubscriptionFailed", Snackbar.LENGTH_LONG)
                     .show();
@@ -1621,11 +1538,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteVideoTrackPublication remoteVideoTrackPublication,
                 @NonNull RemoteVideoTrack remoteVideoTrack) {
-            Log.e(TAG,
-                    "onVideoTrackUnsubscribed: remoteParticipant: %s, video: %s, enabled: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteVideoTrackPublication.getTrackSid() +
-                            remoteVideoTrackPublication.isTrackEnabled());
+            Timber.i(
+                    "onVideoTrackUnsubscribed: remoteParticipant: %s, video: %s, enabled: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteVideoTrackPublication.getTrackSid(),
+                    remoteVideoTrackPublication.isTrackEnabled());
 
             ParticipantController.Item primary = participantController.getPrimaryItem();
 
@@ -1665,22 +1582,22 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         public void onDataTrackPublished(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteDataTrackPublication remoteDataTrackPublication) {
-            Log.e(TAG,
-                    "onDataTrackPublished: remoteParticipant: %s, data: %s, enabled: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteDataTrackPublication.getTrackSid() +
-                            remoteDataTrackPublication.isTrackEnabled());
+            Timber.i(
+                    "onDataTrackPublished: remoteParticipant: %s, data: %s, enabled: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteDataTrackPublication.getTrackSid(),
+                    remoteDataTrackPublication.isTrackEnabled());
         }
 
         @Override
         public void onDataTrackUnpublished(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteDataTrackPublication remoteDataTrackPublication) {
-            Log.e(TAG,
-                    "onDataTrackUnpublished: remoteParticipant: %s, data: %s, enabled: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteDataTrackPublication.getTrackSid() +
-                            remoteDataTrackPublication.isTrackEnabled());
+            Timber.i(
+                    "onDataTrackUnpublished: remoteParticipant: %s, data: %s, enabled: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteDataTrackPublication.getTrackSid(),
+                    remoteDataTrackPublication.isTrackEnabled());
         }
 
         @Override
@@ -1688,12 +1605,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteDataTrackPublication remoteDataTrackPublication,
                 @NonNull RemoteDataTrack remoteDataTrack) {
-            Log.e(TAG,
-                    "onDataTrackSubscribed: remoteParticipant: %s, data: %s, enabled: %b, subscribed: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteDataTrackPublication.getTrackSid() +
-                            remoteDataTrackPublication.isTrackEnabled() +
-                            remoteDataTrackPublication.isTrackSubscribed());
+            Timber.i(
+                    "onDataTrackSubscribed: remoteParticipant: %s, data: %s, enabled: %b, subscribed: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteDataTrackPublication.getTrackSid(),
+                    remoteDataTrackPublication.isTrackEnabled(),
+                    remoteDataTrackPublication.isTrackSubscribed());
         }
 
         @Override
@@ -1701,11 +1618,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteDataTrackPublication remoteDataTrackPublication,
                 @NonNull TwilioException twilioException) {
-            Log.e(TAG,
-                    "onDataTrackSubscriptionFailed: remoteParticipant: %s, video: %s, exception: %s" +
-                            remoteParticipant.getIdentity() +
-                            remoteDataTrackPublication.getTrackSid() +
-                            twilioException.getMessage());
+            Timber.w(
+                    "onDataTrackSubscriptionFailed: remoteParticipant: %s, video: %s, exception: %s",
+                    remoteParticipant.getIdentity(),
+                    remoteDataTrackPublication.getTrackSid(),
+                    twilioException.getMessage());
             // TODO: Need design
             Snackbar.make(mPrimaryVideoView, "onDataTrackSubscriptionFailed", Snackbar.LENGTH_LONG)
                     .show();
@@ -1716,23 +1633,23 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteDataTrackPublication remoteDataTrackPublication,
                 @NonNull RemoteDataTrack remoteDataTrack) {
-            Log.e(TAG,
-                    "onDataTrackUnsubscribed: remoteParticipant: %s, data: %s, enabled: %b, subscribed: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteDataTrackPublication.getTrackSid() +
-                            remoteDataTrackPublication.isTrackEnabled() +
-                            remoteDataTrackPublication.isTrackSubscribed());
+            Timber.i(
+                    "onDataTrackUnsubscribed: remoteParticipant: %s, data: %s, enabled: %b, subscribed: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteDataTrackPublication.getTrackSid(),
+                    remoteDataTrackPublication.isTrackEnabled(),
+                    remoteDataTrackPublication.isTrackSubscribed());
         }
 
         @Override
         public void onAudioTrackEnabled(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteAudioTrackPublication remoteAudioTrackPublication) {
-            Log.i(TAG,
-                    "onAudioTrackEnabled: remoteParticipant: %s, audio: %s, enabled: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteAudioTrackPublication.getTrackSid() +
-                            remoteAudioTrackPublication.isTrackEnabled());
+            Timber.i(
+                    "onAudioTrackEnabled: remoteParticipant: %s, audio: %s, enabled: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteAudioTrackPublication.getTrackSid(),
+                    remoteAudioTrackPublication.isTrackEnabled());
 
             // TODO: need design
         }
@@ -1741,11 +1658,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         public void onAudioTrackDisabled(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteAudioTrackPublication remoteAudioTrackPublication) {
-            Log.i(TAG,
-                    "onAudioTrackDisabled: remoteParticipant: %s, audio: %s, enabled: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteAudioTrackPublication.getTrackSid() +
-                            remoteAudioTrackPublication.isTrackEnabled());
+            Timber.i(
+                    "onAudioTrackDisabled: remoteParticipant: %s, audio: %s, enabled: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteAudioTrackPublication.getTrackSid(),
+                    remoteAudioTrackPublication.isTrackEnabled());
 
             // TODO: need design
         }
@@ -1754,11 +1671,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         public void onVideoTrackEnabled(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteVideoTrackPublication remoteVideoTrackPublication) {
-            Log.i(TAG,
-                    "onVideoTrackEnabled: remoteParticipant: %s, video: %s, enabled: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteVideoTrackPublication.getTrackSid() +
-                            remoteVideoTrackPublication.isTrackEnabled());
+            Timber.i(
+                    "onVideoTrackEnabled: remoteParticipant: %s, video: %s, enabled: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteVideoTrackPublication.getTrackSid(),
+                    remoteVideoTrackPublication.isTrackEnabled());
 
             // TODO: need design
         }
@@ -1767,11 +1684,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         public void onVideoTrackDisabled(
                 @NonNull RemoteParticipant remoteParticipant,
                 @NonNull RemoteVideoTrackPublication remoteVideoTrackPublication) {
-            Log.i(TAG,
-                    "onVideoTrackDisabled: remoteParticipant: %s, video: %s, enabled: %b" +
-                            remoteParticipant.getIdentity() +
-                            remoteVideoTrackPublication.getTrackSid() +
-                            remoteVideoTrackPublication.isTrackEnabled());
+            Timber.i(
+                    "onVideoTrackDisabled: remoteParticipant: %s, video: %s, enabled: %b",
+                    remoteParticipant.getIdentity(),
+                    remoteVideoTrackPublication.getTrackSid(),
+                    remoteVideoTrackPublication.isTrackEnabled());
 
             // TODO: need design
         }
@@ -1802,15 +1719,5 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             networkQualityImage.setVisibility(View.VISIBLE);
             networkQualityImage.setImageResource(R.drawable.network_quality_level_5);
         }
-    }
-
-    private boolean didAcceptPermissions() {
-        return PermissionChecker.checkSelfPermission(mContext, Manifest.permission.RECORD_AUDIO)
-                == PermissionChecker.PERMISSION_GRANTED
-                && PermissionChecker.checkSelfPermission(mContext, Manifest.permission.CAMERA)
-                == PermissionChecker.PERMISSION_GRANTED
-                && PermissionChecker.checkSelfPermission(
-                mContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                == PermissionChecker.PERMISSION_GRANTED;
     }
 }

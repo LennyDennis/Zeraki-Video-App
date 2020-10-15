@@ -4,12 +4,13 @@ import androidx.lifecycle.*
 import com.lennydennis.zerakiapp.model.AccessTokenState
 import com.lennydennis.zerakiapp.repositories.AccessTokenRepo
 import com.lennydennis.zerakiapp.repositories.AccessTokenRepoImpl
+import com.lennydennis.zerakiapp.ui.views.RoomEvent
 import com.twilio.video.app.ui.room.RoomManager
 import kotlinx.coroutines.launch
 
 class RoomFragmentViewModel(private val roomManager: RoomManager) : ViewModel() {
 
-   // val roomEvents: LiveData<RoomEvent?> = roomManager.viewEvents
+    val roomEvents: LiveData<RoomEvent?> = roomManager.viewEvents
 
     private val mAccessTokenRepo: AccessTokenRepo = AccessTokenRepoImpl()
     lateinit var mAccessTokenMutableLiveData: LiveData<AccessTokenState>

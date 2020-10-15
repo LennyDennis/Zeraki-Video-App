@@ -33,6 +33,8 @@
     <string name="connect_to_room">Connect To Room</string>
     <string name="username">Username</string>
     <string name="room_name">Room Name</string>
+    <string name="room_screen_connection_failure_title">Connection Failure</string>
+    <string name="room_screen_connection_failure_message">Failed to connect !</string>
 
     <string-array name="settings_screen_environment_array">
         <item>Production</item>
