@@ -45,6 +45,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -62,7 +63,6 @@ import com.lennydennis.zerakiapp.ui.rooms.RoomEvent;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel.RoomViewModelFactory;
 import com.lennydennis.zerakiapp.util.CameraCapturerCompat;
-import com.twilio.audioswitch.AudioSwitch;
 import com.twilio.video.AspectRatio;
 import com.twilio.video.CameraCapturer;
 import com.twilio.video.LocalAudioTrack;
@@ -83,7 +83,6 @@ import com.twilio.video.RemoteVideoTrackPublication;
 import com.twilio.video.Room;
 import com.twilio.video.ScreenCapturer;
 import com.twilio.video.TwilioException;
-import com.twilio.video.VideoConstraints;
 import com.twilio.video.VideoDimensions;
 import com.twilio.video.VideoTrack;
 import com.twilio.video.app.ui.room.RoomManager;
@@ -94,6 +93,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.reactivex.disposables.CompositeDisposable;
 import kotlinx.coroutines.Dispatchers;
 import timber.log.Timber;
 
@@ -142,17 +142,8 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private ImageButton mLocalVideoButton;
     private ImageButton mLocalMicButton;
     private ImageButton mVideoCallButton;
-    private androidx.appcompat.app.AlertDialog mConnectDialog;
-    private Room mRoom;
-    private LocalParticipant mLocalParticipant;
     private String mUserName;
     private String mRoomName;
-    private MenuItem mScreenCaptureMenuItem;
-    private String mRemoteParticipantIdentity;
-    private Boolean mDisconnectedFromOnDestroy;
-    private int mSavedVolumeControlStream;
-    private AudioSwitch mAudioSwitch;
-    private ParticipantController mParticipantController;
     private ImageButton mEndCallButton;
     private com.lennydennis.zerakiapp.databinding.ContentRoomBinding mIncludePrimaryView;
     private LinearLayout mThumbNailLinearLayout;
@@ -166,7 +157,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
     private AudioManager audioManager;
     private int savedAudioMode = AudioManager.MODE_NORMAL;
-    private int savedVolumeControlStream;
     private boolean savedIsMicrophoneMute = false;
     private boolean savedIsSpeakerPhoneOn = false;
 
@@ -174,7 +164,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private LocalParticipant localParticipant;
     private String localParticipantSid = LOCAL_PARTICIPANT_STUB_SID;
     private Room room;
-    private VideoConstraints videoConstraints;
     private LocalAudioTrack mLocalAudioTrack;
     private LocalVideoTrack mCameraVideoTrack;
     private boolean restoreLocalVideoCameraTrack = false;
@@ -193,7 +182,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                             Snackbar.LENGTH_LONG)
                             .show();
                 }
-
                 @Override
                 public void onFirstFrameAvailable() {
                     Log.e(TAG, "First frame from screen capturer available");
@@ -211,7 +199,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private ParticipantController participantController;
 
 //    /** Disposes {@link VideoAppService} requests when activity is destroyed. */
-//    private final CompositeDisposable rxDisposables = new CompositeDisposable();
+    private final CompositeDisposable rxDisposables = new CompositeDisposable();
 
     private Boolean isAudioMuted = false;
     private Boolean isVideoMuted = false;
@@ -254,7 +242,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
         audioManager = (AudioManager) requireActivity().getSystemService(Context.AUDIO_SERVICE);
         audioManager.setSpeakerphoneOn(true);
-        mSavedVolumeControlStream = requireActivity().getVolumeControlStream();
+//        mSavedVolumeControlStream = requireActivity().getVolumeControlStream();
 
         participantController = new ParticipantController(mThumbNailLinearLayout, mPrimaryVideoView);
         participantController.setListener(participantClickListener());
@@ -335,7 +323,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             mScreenVideoTrack = null;
         }
         // dispose any token requests if needed
-        //rxDisposables.clear();
+        rxDisposables.clear();
         super.onDestroy();
     }
 
@@ -373,13 +361,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         screenCaptureMenuItem = menu.findItem(R.id.share_screen_menu_item);
         requestPermissions();
         mRoomFragmentViewModel.getRoomEvents().observe(this, this::bindRoomEvents);
-
-    }
-
-    @Override
-    public void onPrepareOptionsMenu(@NonNull Menu menu) {
-        super.onPrepareOptionsMenu(menu);
-        mScreenCaptureMenuItem = menu.findItem(R.id.share_screen_menu_item);
 
     }
 
@@ -444,7 +425,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                                 mContext,
                                 true,
                                 mCapturerCompat.getVideoCapturer(),
-                                videoConstraints,
                                 CAMERA_TRACK_NAME);
 
                 if (localParticipant != null && mCameraVideoTrack != null) {
@@ -646,7 +626,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                         mContext,
                         true,
                         mCapturerCompat.getVideoCapturer(),
-                        videoConstraints,
                         CAMERA_TRACK_NAME);
         if (mCameraVideoTrack != null) {
             localVideoTrackNames.put(
@@ -687,8 +666,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
         boolean screenCaptureMenuItemState = false;
 
-        mRoomName = displayName;
-        String toolbarTitle = displayName;
+        String toolbarTitle = mRoomName;
         String joinStatus = "";
         int recordingWarningVisibility = View.GONE;
 
@@ -717,8 +695,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     joinStatusLayoutState = View.GONE;
                     screenCaptureMenuItemState = true;
 
-                    mRoomName = room.getName();
-                    toolbarTitle = mRoomName;
                     joinStatus = "";
 
                     break;
@@ -745,9 +721,8 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         mEndCallButton.setVisibility(disconnectButtonState);
 
         mJoinMessageLayout.setVisibility(joinStatusLayoutState);
-      // mVideoCallButton.setEnabled(connectButtonEnabled);
 
-        //setTitle(toolbarTitle);
+        setTitle(toolbarTitle);
 
         mJoinStatus.setText(joinStatus);
         mJoinRoomName.setText(mRoomName);
@@ -759,10 +734,10 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     }
 
     private void setTitle(String toolbarTitle) {
-//        ActionBar actionBar = getSupportActionBar();
-//        if (actionBar != null) {
-//            actionBar.setTitle(toolbarTitle);
-//        }
+        ActionBar actionBar = ((AppCompatActivity) requireActivity()).getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle("Room: "+toolbarTitle);
+        }
     }
 
     private void setAudioFocus(boolean setFocus) {
@@ -828,8 +803,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
              * Enable changing the volume using the up/down keys during a conversation
              */
             getActivity().setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
-        } else {
-            getActivity().setVolumeControlStream(savedVolumeControlStream);
         }
     }
 
@@ -1238,11 +1211,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                         }
                     }
                 }
-            } else {
-//                if (roomEvent instanceof TokenError) {
-//                    AuthServiceError error = ((TokenError) roomEvent).getServiceError();
-//                    handleTokenError(error);
-//                }
             }
             updateUI(room, roomEvent);
         }
