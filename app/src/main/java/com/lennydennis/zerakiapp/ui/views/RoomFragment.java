@@ -58,6 +58,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.lennydennis.zerakiapp.R;
 import com.lennydennis.zerakiapp.databinding.FragmentRoomBinding;
 import com.lennydennis.zerakiapp.model.AccessTokenState;
+import com.lennydennis.zerakiapp.model.PeerToPeerRoomState;
 import com.lennydennis.zerakiapp.ui.dialog.RoomDialog;
 import com.lennydennis.zerakiapp.ui.rooms.RoomEvent;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel;
@@ -182,6 +183,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                             Snackbar.LENGTH_LONG)
                             .show();
                 }
+
                 @Override
                 public void onFirstFrameAvailable() {
                     Log.e(TAG, "First frame from screen capturer available");
@@ -198,13 +200,14 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
      */
     private ParticipantController participantController;
 
-//    /** Disposes {@link VideoAppService} requests when activity is destroyed. */
+    //    /** Disposes {@link VideoAppService} requests when activity is destroyed. */
     private final CompositeDisposable rxDisposables = new CompositeDisposable();
 
     private Boolean isAudioMuted = false;
     private Boolean isVideoMuted = false;
     private String mRoomType;
     private ImageButton mSwitchCameraButton;
+    private RoomManager mRoomManager;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -275,8 +278,8 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        RoomManager roomManager = new RoomManager(mContext, CoroutineScope(Dispatchers.getIO()));
-        RoomViewModelFactory factory = new RoomViewModelFactory(roomManager);
+        mRoomManager = new RoomManager(mContext, CoroutineScope(Dispatchers.getIO()));
+        RoomViewModelFactory factory = new RoomViewModelFactory(mRoomManager);
         mRoomFragmentViewModel = new ViewModelProvider(this, factory).get(RoomFragmentViewModel.class);
     }
 
@@ -543,18 +546,37 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         mRoomName = roomName;
         mRoomType = roomType;
         mRoomFragmentViewModel.fetchAccessToken(mUserName, mRoomName);
-        observerLiveData();
+        accessTokenObserverLiveData();
     }
 
-    private void observerLiveData() {
+    private void accessTokenObserverLiveData() {
         mRoomFragmentViewModel.mAccessTokenMutableLiveData.observe(getViewLifecycleOwner(), new Observer<AccessTokenState>() {
             @Override
             public void onChanged(AccessTokenState accessTokenState) {
                 if (accessTokenState.getAccessToken() != null && mRoomName != null) {
                     String accessToken = accessTokenState.getAccessToken();
-                    mRoomFragmentViewModel.connectToRoom(mRoomName, accessToken);
+                    if (mRoomType.equals("Peer to Peer")) {
+                        mRoomFragmentViewModel.createPeerToPeerRoom(mRoomName);
+                        peerRoomObserverLiveData(accessToken);
+                    } else {
+                        mRoomFragmentViewModel.connectToRoom(mRoomName, accessToken);
+                    }
                 } else {
                     handleError(accessTokenState.getThrowable());
+                }
+            }
+        });
+    }
+
+    private void peerRoomObserverLiveData(String accessToken) {
+        mRoomFragmentViewModel.mPeerToPeerRoomMutableLiveData.observe(getViewLifecycleOwner(), new Observer<PeerToPeerRoomState>() {
+            @Override
+            public void onChanged(PeerToPeerRoomState peerToPeerRoomState) {
+                if (peerToPeerRoomState.getRoom() != null) {
+                    mRoomFragmentViewModel.connectToRoom(mRoomName, accessToken);
+                } else {
+                    handleError(peerToPeerRoomState.getThrowable());
+
                 }
             }
         });
@@ -736,7 +758,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private void setTitle(String toolbarTitle) {
         ActionBar actionBar = ((AppCompatActivity) requireActivity()).getSupportActionBar();
         if (actionBar != null) {
-            actionBar.setTitle("Room: "+toolbarTitle);
+            actionBar.setTitle("Room: " + toolbarTitle);
         }
     }
 
@@ -976,7 +998,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             // toggle local participant state and hide his badge
             participantController.updateThumb(
                     item.sid, item.videoTrack, ParticipantView.State.SELECTED);
-         //   participantController.getPrimaryView().showIdentityBadge(false);
+            //   participantController.getPrimaryView().showIdentityBadge(false);
         } else {
 
             // remove remote participant thumb

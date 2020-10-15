@@ -1,6 +1,7 @@
 package com.lennydennis.zerakiapp.api;
 
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 public class TwilioRetrofitInstance {
@@ -17,6 +18,7 @@ public class TwilioRetrofitInstance {
             sRetrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)
                     .addConverterFactory(ScalarsConverterFactory.create())
+                    .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }
 
