@@ -1,4 +1,4 @@
-package com.lennydennis.zerakiapp.ui.views
+package com.lennydennis.zerakiapp.ui.rooms
 
 import com.twilio.video.RemoteParticipant
 import com.twilio.video.Room

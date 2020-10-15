@@ -27,6 +27,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fitsSystemWindows="true"
+                app:titleTextColor="#fff"
                 android:background="@color/colorPrimary"
                 android:minHeight="?attr/actionBarSize"
                 app:popupTheme="@style/AppTheme.Lobby.PopupMenu" />
@@ -78,8 +79,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginEnd="@dimen/fab_margin"
-            android:layout_marginRight="@dimen/fab_margin"
+            android:paddingEnd="@dimen/fab_margin"
             android:gravity="end|bottom"
             android:orientation="vertical">
 

@@ -2,10 +2,11 @@ package com.lennydennis.zerakiapp.ui.views;
 
 import android.os.Bundle;
 
-import com.lennydennis.zerakiapp.R;
-import com.lennydennis.zerakiapp.base.BaseActivity;
+import androidx.appcompat.app.AppCompatActivity;
 
-public class MainActivity extends BaseActivity {
+import com.lennydennis.zerakiapp.R;
+
+public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

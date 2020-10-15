@@ -22,10 +22,12 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
+
 import androidx.core.content.ContextCompat;
-import butterknife.ButterKnife;
 
 import com.lennydennis.zerakiapp.R;
+
+import butterknife.ButterKnife;
 
 public class ParticipantThumbView extends ParticipantView {
 
@@ -55,7 +57,7 @@ public class ParticipantThumbView extends ParticipantView {
         View view = LayoutInflater.from(context).inflate(R.layout.participant_view, this);
         ButterKnife.bind(this, view);
 
-        //setIdentity(identity);
+        setIdentity(identity);
         setState(state);
         setMirror(mirror);
         setScaleType(scaleType);

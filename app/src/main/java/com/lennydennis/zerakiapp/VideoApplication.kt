@@ -30,8 +30,6 @@ import javax.inject.Inject
 class VideoApplication : Application(), HasAndroidInjector {
     @Inject
     lateinit var dispatchingAndroidInjector: DispatchingAndroidInjector<Any>
-//    @Inject
-//    lateinit var tree: Timber.Tree
 
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(base)
@@ -51,9 +49,6 @@ class VideoApplication : Application(), HasAndroidInjector {
                 .build()
                 .inject(this)
 
-//        Timber.plant(tree)
-//
-       // startAppcenter(this)
     }
 
     override fun androidInjector(): AndroidInjector<Any> {

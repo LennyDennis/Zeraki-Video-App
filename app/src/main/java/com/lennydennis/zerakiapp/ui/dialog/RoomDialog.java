@@ -44,9 +44,6 @@ public class RoomDialog extends DialogFragment {
         mCancelButton = mRoomDialogBinding.closeDialog;
         mConnectButton = mRoomDialogBinding.connectRoomButton;
 
-//        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(), R.array.room_type, android.R.layout.simple_spinner_item);
-//        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-//        mRoomTypeSpinner.setAdapter(adapter);
         mRoomTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {

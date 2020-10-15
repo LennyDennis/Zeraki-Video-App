@@ -58,6 +58,7 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
     @BindView(R.id.participant_badge)
     ConstraintLayout identityBadge;
 
+    @Nullable
     @BindView(R.id.participant_video_identity)
     TextView videoIdentity;
 
@@ -70,17 +71,23 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
     @BindView(R.id.participant_stub_image)
     ImageView stubImage;
 
+    @Nullable
     @BindView(R.id.dominant_speaker_img)
     ImageView dominantSpeakerImg;
 
+    @Nullable
     @BindView(R.id.network_quality_level_img)
     ImageView networkQualityLevelImg;
 
+    @Nullable
     @BindView(R.id.participant_selected_identity)
     TextView selectedIdentity;
 
+    @Nullable
     @BindView(R.id.participant_no_audio)
     ImageView audioToggle;
+
+
 
     public ParticipantView(@NonNull Context context) {
         super(context);

@@ -58,6 +58,7 @@ import com.lennydennis.zerakiapp.R;
 import com.lennydennis.zerakiapp.databinding.FragmentRoomBinding;
 import com.lennydennis.zerakiapp.model.AccessTokenState;
 import com.lennydennis.zerakiapp.ui.dialog.RoomDialog;
+import com.lennydennis.zerakiapp.ui.rooms.RoomEvent;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel.RoomViewModelFactory;
 import com.lennydennis.zerakiapp.util.CameraCapturerCompat;
@@ -251,8 +252,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             isVideoMuted = savedInstanceState.getBoolean(IS_VIDEO_MUTED);
         }
 
-        //mDisconnectedFromOnDestroy = false;
-
         audioManager = (AudioManager) requireActivity().getSystemService(Context.AUDIO_SERVICE);
         audioManager.setSpeakerphoneOn(true);
         mSavedVolumeControlStream = requireActivity().getVolumeControlStream();
@@ -264,8 +263,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
         ((AppCompatActivity) requireActivity()).setSupportActionBar(mFragmentRoomBinding.toolbar);
 
-        // obtainVideoConstraints();
-
         initializeUI();
 
         // Inflate the layout for this fragment
@@ -273,6 +270,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     }
 
     private void initializeUI() {
+
         mVideoCallButton.setVisibility(View.VISIBLE);
         mVideoCallButton.setOnClickListener(connectVideoCallClickListener());
         mLocalVideoButton.setVisibility(View.VISIBLE);
@@ -481,7 +479,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                             mCapturerCompat.getCameraSource()
                                     == CameraCapturer.CameraSource.FRONT_CAMERA);
 
-                    participantController.getPrimaryView().showIdentityBadge(false);
+//                    participantController.getPrimaryView().showIdentityBadge(false);
 
                     // update thumb state
                     participantController.updateThumb(
@@ -586,57 +584,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         Toast.makeText(getContext(), throwable.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
     }
 
-//    private void obtainVideoConstraints() {
-//        Log.d(TAG, "Collecting video constraints...");
-//
-//        VideoConstraints.Builder builder = new VideoConstraints.Builder();
-//
-//        // setup aspect ratio
-//        String aspectRatio = sharedPreferences.getString(Preferences.ASPECT_RATIO, "0");
-//        if (aspectRatio != null) {
-//            int aspectRatioIndex = Integer.parseInt(aspectRatio);
-//            builder.aspectRatio(aspectRatios[aspectRatioIndex]);
-//            Log.d(TAG,
-//                    "Aspect ratio : %s" +
-//                            getResources()
-//                                    .getStringArray(R.array.settings_screen_aspect_ratio_array)[
-//                                    aspectRatioIndex]);
-//        }
-//
-//        // setup video dimensions
-//        int minVideoDim = sharedPreferences.getInt(Preferences.MIN_VIDEO_DIMENSIONS, 0);
-//        int maxVideoDim =
-//                sharedPreferences.getInt(
-//                        Preferences.MAX_VIDEO_DIMENSIONS, videoDimensions.length - 1);
-//
-//        if (maxVideoDim != -1 && minVideoDim != -1) {
-//            builder.minVideoDimensions(videoDimensions[minVideoDim]);
-//            builder.maxVideoDimensions(videoDimensions[maxVideoDim]);
-//        }
-//
-//        Log.d(TAG,
-//                "Video dimensions: %s - %s" +
-//                        getResources()
-//                                .getStringArray(R.array.settings_screen_video_dimensions_array)[
-//                                minVideoDim] + " " +
-//                        getResources()
-//                                .getStringArray(R.array.settings_screen_video_dimensions_array)[
-//                                maxVideoDim]);
-//
-//        // setup fps
-//        int minFps = sharedPreferences.getInt(Preferences.MIN_FPS, 0);
-//        int maxFps = sharedPreferences.getInt(Preferences.MAX_FPS, 30);
-//
-//        if (maxFps != -1 && minFps != -1) {
-//            builder.minFps(minFps);
-//            builder.maxFps(maxFps);
-//        }
-//
-//        Log.d(TAG, "Frames per second: " + minFps + maxFps);
-//
-//        videoConstraints = builder.build();
-//    }
-
     private void requestPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!permissionsGranted()) {
@@ -731,13 +678,14 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     }
 
     private void updateUI(Room room, RoomEvent roomEvent) {
+        int switchCameraButtonSate = View.GONE;
+        int connectButtonState = View.VISIBLE;
         int disconnectButtonState = View.GONE;
+
         int joinRoomLayoutState = View.VISIBLE;
         int joinStatusLayoutState = View.GONE;
 
         boolean screenCaptureMenuItemState = false;
-
-        boolean connectButtonEnabled = mRoomName != null && !mRoomName.isEmpty();
 
         mRoomName = displayName;
         String toolbarTitle = displayName;
@@ -745,13 +693,14 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         int recordingWarningVisibility = View.GONE;
 
         if (roomEvent instanceof RoomEvent.Connecting) {
+            screenCaptureMenuItemState = true;
+            switchCameraButtonSate = View.VISIBLE;
+            connectButtonState = View.GONE;
             disconnectButtonState = View.VISIBLE;
 
             joinRoomLayoutState = View.GONE;
             joinStatusLayoutState = View.VISIBLE;
             recordingWarningVisibility = View.VISIBLE;
-
-            connectButtonEnabled = false;
 
             if (mRoomName != null) {
                 roomName = mRoomName;
@@ -762,12 +711,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         if (room != null) {
             switch (room.getState()) {
                 case CONNECTED:
+                    switchCameraButtonSate = View.VISIBLE;
+                    connectButtonState = View.GONE;
                     disconnectButtonState = View.VISIBLE;
-                    joinRoomLayoutState = View.GONE;
                     joinStatusLayoutState = View.GONE;
                     screenCaptureMenuItemState = true;
-
-                    connectButtonEnabled = false;
 
                     mRoomName = room.getName();
                     toolbarTitle = mRoomName;
@@ -775,7 +723,9 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
                     break;
                 case DISCONNECTED:
-                    connectButtonEnabled = true;
+                    switchCameraButtonSate = View.GONE;
+                    connectButtonState = View.VISIBLE;
+                    disconnectButtonState = View.GONE;
                     screenCaptureMenuItemState = false;
                     break;
             }
@@ -789,9 +739,13 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             mLocalVideoButton.setImageResource(R.drawable.ic_baseline_videocam_off_24);
         }
 
+
+        mSwitchCameraButton.setVisibility(switchCameraButtonSate);
+        mVideoCallButton.setVisibility(connectButtonState);
         mEndCallButton.setVisibility(disconnectButtonState);
+
         mJoinMessageLayout.setVisibility(joinStatusLayoutState);
-        mVideoCallButton.setEnabled(connectButtonEnabled);
+      // mVideoCallButton.setEnabled(connectButtonEnabled);
 
         //setTitle(toolbarTitle);
 
@@ -1049,7 +1003,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             // toggle local participant state and hide his badge
             participantController.updateThumb(
                     item.sid, item.videoTrack, ParticipantView.State.SELECTED);
-            participantController.getPrimaryView().showIdentityBadge(false);
+         //   participantController.getPrimaryView().showIdentityBadge(false);
         } else {
 
             // remove remote participant thumb
@@ -1117,7 +1071,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
      */
     private void restoreCameraTrack() {
         if (restoreLocalVideoCameraTrack) {
-            //  obtainVideoConstraints();
             setupLocalVideoTrack();
             renderLocalParticipantStub();
             restoreLocalVideoCameraTrack = false;

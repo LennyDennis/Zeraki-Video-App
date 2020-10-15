@@ -16,8 +16,6 @@
 
 package com.lennydennis.zerakiapp;
 
-import com.lennydennis.zerakiapp.ui.views.MainActivityModule;
-
 import dagger.Component;
 import dagger.android.AndroidInjectionModule;
 
@@ -26,8 +24,6 @@ import dagger.android.AndroidInjectionModule;
         modules = {
                 AndroidInjectionModule.class,
                 ApplicationModule.class,
-                MainActivityModule.class,
-                    //RoomFragmentModule.class
         }
 )
 public interface VideoApplicationComponent {

@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.lennydennis.zerakiapp.model.Preferences
-import com.lennydennis.zerakiapp.ui.views.RoomEvent
+import com.lennydennis.zerakiapp.ui.rooms.RoomEvent
 import com.twilio.video.AudioCodec
 import com.twilio.video.ConnectOptions
 import com.twilio.video.EncodingParameters
@@ -23,12 +23,12 @@ import com.twilio.video.Video
 import com.twilio.video.VideoCodec
 import com.twilio.video.Vp8Codec
 import com.twilio.video.Vp9Codec
-import com.lennydennis.zerakiapp.ui.views.RoomEvent.ConnectFailure
-import com.lennydennis.zerakiapp.ui.views.RoomEvent.Connecting
-import com.lennydennis.zerakiapp.ui.views.RoomEvent.DominantSpeakerChanged
-import com.lennydennis.zerakiapp.ui.views.RoomEvent.ParticipantConnected
-import com.lennydennis.zerakiapp.ui.views.RoomEvent.ParticipantDisconnected
-import com.lennydennis.zerakiapp.ui.views.RoomEvent.RoomState
+import com.lennydennis.zerakiapp.ui.rooms.RoomEvent.ConnectFailure
+import com.lennydennis.zerakiapp.ui.rooms.RoomEvent.Connecting
+import com.lennydennis.zerakiapp.ui.rooms.RoomEvent.DominantSpeakerChanged
+import com.lennydennis.zerakiapp.ui.rooms.RoomEvent.ParticipantConnected
+import com.lennydennis.zerakiapp.ui.rooms.RoomEvent.ParticipantDisconnected
+import com.lennydennis.zerakiapp.ui.rooms.RoomEvent.RoomState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
