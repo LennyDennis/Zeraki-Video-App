@@ -24,7 +24,6 @@ public class Preferences {
     public static final String DISPLAY_NAME = "pref_display_name";
     public static final String ROOM_NAME = "room_name";
     public static final String ENVIRONMENT = "pref_environment";
-   // public static final String ENVIRONMENT_DEFAULT = BuildConfig.ENVIRONMENT_DEFAULT;
     public static final String TOPOLOGY = "pref_topology";
     public static final String TOPOLOGY_DEFAULT = Topology.P2P.getString();
     public static final String MIN_FPS = "pref_min_fps";

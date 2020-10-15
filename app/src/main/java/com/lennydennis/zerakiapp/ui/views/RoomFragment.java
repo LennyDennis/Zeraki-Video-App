@@ -1,3 +1,4 @@
+ 
 /*
  * Copyright (C) 2019 Twilio, Inc.
  *
@@ -41,6 +42,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -49,13 +51,17 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.PermissionChecker;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.lennydennis.zerakiapp.R;
 import com.lennydennis.zerakiapp.databinding.FragmentRoomBinding;
+import com.lennydennis.zerakiapp.model.AccessTokenState;
 import com.lennydennis.zerakiapp.model.Preferences;
+import com.lennydennis.zerakiapp.ui.dialog.RoomDialog;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel;
+import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel.RoomViewModelFactory;
 import com.lennydennis.zerakiapp.util.CameraCapturerCompat;
 import com.twilio.audioswitch.AudioSwitch;
 import com.twilio.video.AspectRatio;
@@ -82,6 +88,7 @@ import com.twilio.video.VideoConstraints;
 import com.twilio.video.VideoDimensions;
 import com.twilio.video.VideoRenderer;
 import com.twilio.video.VideoTrack;
+import com.twilio.video.app.ui.room.RoomManager;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -91,14 +98,15 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-import butterknife.OnClick;
+import kotlinx.coroutines.Dispatchers;
 
 import static com.twilio.video.AspectRatio.ASPECT_RATIO_11_9;
 import static com.twilio.video.AspectRatio.ASPECT_RATIO_16_9;
 import static com.twilio.video.AspectRatio.ASPECT_RATIO_4_3;
 import static com.twilio.video.Room.State.CONNECTED;
+import static kotlinx.coroutines.CoroutineScopeKt.CoroutineScope;
 
-public class RoomFragment extends Fragment {
+public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListener {
 
     private static final String TAG = "RoomFragment";
 
@@ -161,11 +169,7 @@ public class RoomFragment extends Fragment {
     private TextView mJoinStatus;
     private TextView mJoinRoomName;
 
-    private MenuItem switchCameraMenuItem;
-    private MenuItem pauseVideoMenuItem;
-    private MenuItem pauseAudioMenuItem;
     private MenuItem screenCaptureMenuItem;
-    private MenuItem settingsMenuItem;
 
     private AudioManager audioManager;
     private int savedAudioMode = AudioManager.MODE_INVALID;
@@ -174,7 +178,6 @@ public class RoomFragment extends Fragment {
     private boolean savedIsSpeakerPhoneOn = false;
 
     private String displayName;
-    private String roomName;
     private LocalParticipant localParticipant;
     private String localParticipantSid = LOCAL_PARTICIPANT_STUB_SID;
     private Room room;
@@ -211,9 +214,11 @@ public class RoomFragment extends Fragment {
 
 //    @Inject TokenService tokenService;
 
-    @Inject SharedPreferences sharedPreferences;
+    @Inject
+    SharedPreferences sharedPreferences;
 
-//    @Inject RoomManager roomManager;
+    @Inject
+    RoomManager roomManager;
 
     /**
      * Coordinates participant thumbs and primary participant rendering.
@@ -225,6 +230,7 @@ public class RoomFragment extends Fragment {
 
     private Boolean isAudioMuted = false;
     private Boolean isVideoMuted = false;
+    private String mRoomType;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -272,20 +278,37 @@ public class RoomFragment extends Fragment {
 
         ((AppCompatActivity) requireActivity()).setSupportActionBar(mFragmentRoomBinding.toolbar);
 
-        //obtainVideoConstraints();
+        // obtainVideoConstraints();
 
-        //initializeUI();
+        initializeUI();
 
         // Inflate the layout for this fragment
         return view;
     }
 
+    private void initializeUI() {
+        mVideoCallButton.setVisibility(View.VISIBLE);
+        mVideoCallButton.setOnClickListener(connectVideoCallClickListener());
+        mLocalVideoButton.setVisibility(View.VISIBLE);
+        mLocalVideoButton.setOnClickListener(toggleVideoClickListener());
+        mLocalMicButton.setVisibility(View.VISIBLE);
+        mLocalMicButton.setOnClickListener(toggleMicClickListener());
+
+
+        // mEndCallButton.setOnClickListener(switchCameraClickListener());
+    }
+
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mRoomFragmentViewModel = new ViewModelProvider(this).get(RoomFragmentViewModel.class);
+//        private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+//        Corou
+        RoomManager roomManager1 = new RoomManager(mContext,CoroutineScope(Dispatchers.getIO()));
 
-        //checkCameraMicPermission();
+        RoomViewModelFactory factory = new RoomViewModelFactory(roomManager1);
+        mRoomFragmentViewModel = new ViewModelProvider(this, factory).get(RoomFragmentViewModel.class);
+
+        // mRoomFragmentViewModel = new ViewModelProvider(this).get(RoomFragmentViewModel.class);
     }
 
     @Override
@@ -355,18 +378,14 @@ public class RoomFragment extends Fragment {
             boolean recordAudioPermissionGranted =
                     grantResults[0] == PackageManager.PERMISSION_GRANTED;
             boolean cameraPermissionGranted = grantResults[1] == PackageManager.PERMISSION_GRANTED;
-            boolean writeExternalStoragePermissionGranted =
-                    grantResults[2] == PackageManager.PERMISSION_GRANTED;
             boolean permissionsGranted =
                     recordAudioPermissionGranted
-                            && cameraPermissionGranted
-                            && writeExternalStoragePermissionGranted;
+                            && cameraPermissionGranted;
 
-            if (true) {
+            if (permissionsGranted) {
                 setupLocalMedia();
             } else {
-                Snackbar.make(mPrimaryVideoView, R.string.permissions_required, Snackbar.LENGTH_LONG)
-                        .show();
+                Toast.makeText(mContext, R.string.permissions_required, Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -470,115 +489,143 @@ public class RoomFragment extends Fragment {
 //        stopScreenCapture();
 //    }
 
-    @OnClick(R.id.local_mic_button)
-    void toggleLocalAudio() {
-        int icon;
-        if (localAudioTrack == null) {
-            isAudioMuted = false;
-            localAudioTrack = LocalAudioTrack.create(mContext, true, MICROPHONE_TRACK_NAME);
-            if (localParticipant != null && localAudioTrack != null) {
-                localParticipant.publishTrack(localAudioTrack);
+
+    private View.OnClickListener toggleVideoClickListener() {
+        return v -> {
+            // remember old video reference for updating thumb in room
+            VideoTrack oldVideo = cameraVideoTrack;
+
+            if (cameraVideoTrack == null) {
+                isVideoMuted = false;
+
+                // add local camera track
+                cameraVideoTrack =
+                        LocalVideoTrack.create(
+                                mContext,
+                                true,
+                                cameraCapturer.getVideoCapturer(),
+                                videoConstraints,
+                                CAMERA_TRACK_NAME);
+                if (localParticipant != null && cameraVideoTrack != null) {
+                    localParticipant.publishTrack(cameraVideoTrack);
+
+                    // enable video settings
+//                switchCameraMenuItem.setVisible(cameraVideoTrack.isEnabled());
+//                pauseVideoMenuItem.setTitle(
+//                        cameraVideoTrack.isEnabled()
+//                                ? R.string.pause_video
+//                                : R.string.resume_video);
+                }
+            } else {
+                isVideoMuted = true;
+                // remove local camera track
+                cameraVideoTrack.removeRenderer(mPrimaryVideoView);
+
+                if (localParticipant != null) {
+                    localParticipant.unpublishTrack(cameraVideoTrack);
+                }
+                cameraVideoTrack.release();
+                cameraVideoTrack = null;
+
+                // disable video settings
+//            switchCameraMenuItem.setVisible(false);
             }
-            icon = R.drawable.ic_mic_white_24px;
-            pauseAudioMenuItem.setVisible(true);
-            pauseAudioMenuItem.setTitle(
-                    localAudioTrack.isEnabled() ? R.string.pause_audio : R.string.resume_audio);
-        } else {
-            isAudioMuted = true;
-            if (localParticipant != null) {
-                localParticipant.unpublishTrack(localAudioTrack);
+
+            if (room != null && room.getState() == CONNECTED) {
+
+                // update local participant thumb
+                participantController.updateThumb(localParticipantSid, oldVideo, cameraVideoTrack);
+
+                if (participantController.getPrimaryItem().sid.equals(localParticipantSid)) {
+
+                    // local video was rendered as primary view - refreshing
+                    participantController.renderAsPrimary(
+                            localParticipantSid,
+                            getString(R.string.you),
+                            cameraVideoTrack,
+                            localAudioTrack == null,
+                            cameraCapturer.getCameraSource()
+                                    == CameraCapturer.CameraSource.FRONT_CAMERA);
+
+                    participantController.getPrimaryView().showIdentityBadge(false);
+
+                    // update thumb state
+                    participantController.updateThumb(
+                            localParticipantSid, cameraVideoTrack, ParticipantView.State.SELECTED);
+                }
+
+            } else {
+
+                renderLocalParticipantStub();
             }
-            localAudioTrack.release();
-            localAudioTrack = null;
-            icon = R.drawable.ic_baseline_mic_off_24;
-            pauseAudioMenuItem.setVisible(false);
-        }
-        mLocalMicButton.setImageResource(icon);
+
+            // update toggle button icon
+            mLocalVideoButton.setImageResource(
+                    cameraVideoTrack != null
+                            ? R.drawable.ic_videocam_white_24px
+                            : R.drawable.ic_baseline_videocam_off_24);
+        };
     }
 
-    @OnClick(R.id.local_video_button)
-    void toggleLocalVideo() {
-
-        // remember old video reference for updating thumb in room
-        VideoTrack oldVideo = cameraVideoTrack;
-
-        if (cameraVideoTrack == null) {
-            isVideoMuted = false;
-
-            // add local camera track
-            cameraVideoTrack =
-                    LocalVideoTrack.create(
-                            mContext,
-                            true,
-                            cameraCapturer.getVideoCapturer(),
-                            videoConstraints,
-                            CAMERA_TRACK_NAME);
-            if (localParticipant != null && cameraVideoTrack != null) {
-                localParticipant.publishTrack(cameraVideoTrack);
-
-                // enable video settings
-                switchCameraMenuItem.setVisible(cameraVideoTrack.isEnabled());
-                pauseVideoMenuItem.setTitle(
-                        cameraVideoTrack.isEnabled()
-                                ? R.string.pause_video
-                                : R.string.resume_video);
-                pauseVideoMenuItem.setVisible(true);
-            }
-        } else {
-            isVideoMuted = true;
-            // remove local camera track
-            cameraVideoTrack.removeRenderer(mPrimaryVideoView);
-
-            if (localParticipant != null) {
-                localParticipant.unpublishTrack(cameraVideoTrack);
-            }
-            cameraVideoTrack.release();
-            cameraVideoTrack = null;
-
-            // disable video settings
-            switchCameraMenuItem.setVisible(false);
-            pauseVideoMenuItem.setVisible(false);
-        }
-
-        if (room != null && room.getState() == CONNECTED) {
-
-            // update local participant thumb
-            participantController.updateThumb(localParticipantSid, oldVideo, cameraVideoTrack);
-
-            if (participantController.getPrimaryItem().sid.equals(localParticipantSid)) {
-
-                // local video was rendered as primary view - refreshing
-                participantController.renderAsPrimary(
-                        localParticipantSid,
-                        getString(R.string.you),
-                        cameraVideoTrack,
-                        localAudioTrack == null,
-                        cameraCapturer.getCameraSource()
-                                == CameraCapturer.CameraSource.FRONT_CAMERA);
-
-                participantController.getPrimaryView().showIdentityBadge(false);
-
-                // update thumb state
-                participantController.updateThumb(
-                        localParticipantSid, cameraVideoTrack, ParticipantView.State.SELECTED);
-            }
-
-        } else {
-
-            renderLocalParticipantStub();
-        }
-
-        // update toggle button icon
-        mLocalVideoButton.setImageResource(
-                cameraVideoTrack != null
-                        ? R.drawable.ic_videocam_white_24px
-                        : R.drawable.ic_baseline_videocam_off_24);
+    private View.OnClickListener connectVideoCallClickListener() {
+        return v -> showConnectDialog();
     }
 
-    private boolean isNetworkQualityEnabled() {
-        return sharedPreferences.getBoolean(
-                Preferences.ENABLE_NETWORK_QUALITY_LEVEL,
-                Preferences.ENABLE_NETWORK_QUALITY_LEVEL_DEFAULT);
+    private void showConnectDialog() {
+        RoomDialog roomDialog = new RoomDialog();
+        roomDialog.setTargetFragment(RoomFragment.this, 1);
+        roomDialog.show(getParentFragmentManager(), "Room Dialog");
+    }
+
+    @Override
+    public void connectRoom(String userName, String roomName, String roomType) {
+        mUserName = userName;
+        mRoomName = roomName;
+        mRoomType = roomType;
+        mRoomFragmentViewModel.fetchAccessToken(mUserName, mRoomName);
+        observerLiveData();
+    }
+
+    private void observerLiveData() {
+        mRoomFragmentViewModel.mAccessTokenMutableLiveData.observe(getViewLifecycleOwner(), new Observer<AccessTokenState>() {
+            @Override
+            public void onChanged(AccessTokenState accessTokenState) {
+                if (accessTokenState.getAccessToken() != null && mRoomName != null) {
+                    String accessToken = accessTokenState.getAccessToken();
+                    mRoomFragmentViewModel.connectToRoom(mRoomName, accessToken);
+                } else {
+                    handleError(accessTokenState.getThrowable());
+                }
+            }
+        });
+    }
+
+    private void handleError(Throwable throwable) {
+        Toast.makeText(getContext(), throwable.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+    }
+
+
+    private View.OnClickListener toggleMicClickListener() {
+        return v -> {
+            int icon;
+            if (localAudioTrack == null) {
+                isAudioMuted = false;
+                localAudioTrack = LocalAudioTrack.create(mContext, true, MICROPHONE_TRACK_NAME);
+                if (localParticipant != null && localAudioTrack != null) {
+                    localParticipant.publishTrack(localAudioTrack);
+                }
+                icon = R.drawable.ic_mic_white_24px;
+            } else {
+                isAudioMuted = true;
+                if (localParticipant != null) {
+                    localParticipant.unpublishTrack(localAudioTrack);
+                }
+                localAudioTrack.release();
+                localAudioTrack = null;
+                icon = R.drawable.ic_baseline_mic_off_24;
+            }
+            mLocalMicButton.setImageResource(icon);
+        };
     }
 
     private void obtainVideoConstraints() {
@@ -948,24 +995,6 @@ public class RoomFragment extends Fragment {
         }
     }
 
-    private void toggleLocalAudioTrackState() {
-        if (localAudioTrack != null) {
-            boolean enable = !localAudioTrack.isEnabled();
-            localAudioTrack.enable(enable);
-            pauseAudioMenuItem.setTitle(
-                    localAudioTrack.isEnabled() ? R.string.pause_audio : R.string.resume_audio);
-        }
-    }
-
-    private void toggleLocalVideoTrackState() {
-        if (cameraVideoTrack != null) {
-            boolean enable = !cameraVideoTrack.isEnabled();
-            cameraVideoTrack.enable(enable);
-            pauseVideoMenuItem.setTitle(
-                    cameraVideoTrack.isEnabled() ? R.string.pause_video : R.string.resume_video);
-        }
-    }
-
     /**
      * Provides remoteParticipant a listener for media events and add thumb.
      *
@@ -1158,7 +1187,7 @@ public class RoomFragment extends Fragment {
      */
     private void restoreCameraTrack() {
         if (restoreLocalVideoCameraTrack) {
-          //  obtainVideoConstraints();
+            //  obtainVideoConstraints();
             setupLocalVideoTrack();
             renderLocalParticipantStub();
             restoreLocalVideoCameraTrack = false;
@@ -1246,6 +1275,7 @@ public class RoomFragment extends Fragment {
             }
         }
     }
+
 
 //    private void bindRoomEvents(RoomEvent roomEvent) {
 //        if (roomEvent != null) {

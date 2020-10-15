@@ -1,4 +1,4 @@
-package com.lennydennis.zerakiapp.dialog;
+package com.lennydennis.zerakiapp.ui.dialog;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -8,10 +8,9 @@ import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 import com.lennydennis.zerakiapp.R;
 
-public class Dialog {
+public class DialogRoom {
 
 
     public static AlertDialog createConnectDialog(TextInputEditText userNameEditText, TextInputEditText roomNameEditText,

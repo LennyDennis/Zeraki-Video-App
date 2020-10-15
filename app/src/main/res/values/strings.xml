@@ -22,7 +22,7 @@
     <string name="failed_to_add_screen_video_track">Failed to add screen video track</string>
     <string name="screen_capture_error">Screen Capture Error</string>
     <string name="settings_screen_enable_network_quality_level_description">Network Quality Values</string>
-    <string name="permissions_required">Permission rewuired</string>
+    <string name="permissions_required">"Camera and Microphone permissions needed. Please allow in App Settings for additional functionality."</string>
     <string name="pause_audio">Pause Audio</string>
     <string name="resume_audio">Resume Audio</string>
     <string name="pause_video">Pause Video</string>
@@ -30,6 +30,9 @@
     <string name="camera_video_track">Camera</string>
     <string name="failed_to_add_camera_video_track">Failed to add camera video track</string>
     <string name="screen_video_track">Video</string>
+    <string name="connect_to_room">Connect To Room</string>
+    <string name="username">Username</string>
+    <string name="room_name">Room Name</string>
 
     <string-array name="settings_screen_environment_array">
         <item>Production</item>
@@ -68,5 +71,11 @@
         <item>1280x960</item>
         <item>1440x1080</item>
         <item>1920x1080</item>
+    </string-array>
+
+    <string-array name="room_type">
+        <item>Room Type</item>
+        <item>Peer to Peer</item>
+        <item>Group</item>
     </string-array>
 </resources>

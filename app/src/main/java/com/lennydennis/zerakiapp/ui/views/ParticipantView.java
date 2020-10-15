@@ -25,6 +25,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
 import androidx.annotation.AttrRes;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
@@ -37,6 +38,7 @@ import com.twilio.video.I420Frame;
 import com.twilio.video.VideoRenderer;
 import com.twilio.video.VideoScaleType;
 import com.twilio.video.VideoTextureView;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
@@ -108,14 +110,15 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
 
     public void setIdentity(String identity) {
         this.identity = identity;
-//        videoIdentity.setText(identity);
-     //   selectedIdentity.setText(identity);
+        videoIdentity.setText(identity);
+        selectedIdentity.setText(identity);
     }
 
     public void setState(int state) {
         this.state = state;
         switch (state) {
             case State.VIDEO:
+                identityBadge.setVisibility(GONE);
                 selectedLayout.setVisibility(GONE);
                 stubImage.setVisibility(GONE);
                 selectedIdentity.setVisibility(GONE);
@@ -141,7 +144,7 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
 
     public void setMirror(boolean mirror) {
         this.mirror = mirror;
-//        videoView.setMirror(this.mirror);
+        videoView.setMirror(this.mirror);
     }
 
     void setScaleType(int scaleType) {
@@ -150,7 +153,7 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
     }
 
     public void setMuted(boolean muted) {
-//        audioToggle.setVisibility(muted ? VISIBLE : GONE);
+        audioToggle.setVisibility(muted ? VISIBLE : GONE);
     }
 
     @Override
