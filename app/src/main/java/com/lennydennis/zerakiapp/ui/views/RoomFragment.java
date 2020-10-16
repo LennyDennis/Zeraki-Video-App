@@ -64,7 +64,6 @@ import com.lennydennis.zerakiapp.ui.rooms.RoomEvent;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel;
 import com.lennydennis.zerakiapp.ui.viewmodels.RoomFragmentViewModel.RoomViewModelFactory;
 import com.lennydennis.zerakiapp.util.CameraCapturerCompat;
-import com.twilio.video.AspectRatio;
 import com.twilio.video.CameraCapturer;
 import com.twilio.video.LocalAudioTrack;
 import com.twilio.video.LocalAudioTrackPublication;
@@ -84,7 +83,6 @@ import com.twilio.video.RemoteVideoTrackPublication;
 import com.twilio.video.Room;
 import com.twilio.video.ScreenCapturer;
 import com.twilio.video.TwilioException;
-import com.twilio.video.VideoDimensions;
 import com.twilio.video.VideoTrack;
 import com.twilio.video.app.ui.room.RoomManager;
 
@@ -98,9 +96,6 @@ import io.reactivex.disposables.CompositeDisposable;
 import kotlinx.coroutines.Dispatchers;
 import timber.log.Timber;
 
-import static com.twilio.video.AspectRatio.ASPECT_RATIO_11_9;
-import static com.twilio.video.AspectRatio.ASPECT_RATIO_16_9;
-import static com.twilio.video.AspectRatio.ASPECT_RATIO_4_3;
 import static com.twilio.video.Room.State.CONNECTED;
 import static kotlinx.coroutines.CoroutineScopeKt.CoroutineScope;
 
@@ -117,22 +112,10 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private static final String IS_VIDEO_MUTED = "IS_VIDEO_MUTED";
 
     private static final String LOCAL_PARTICIPANT_STUB_SID = "";
+    private final CompositeDisposable rxDisposables = new CompositeDisposable();
 
-    private AspectRatio[] aspectRatios =
-            new AspectRatio[]{ASPECT_RATIO_4_3, ASPECT_RATIO_16_9, ASPECT_RATIO_11_9};
-
-    private VideoDimensions[] videoDimensions =
-            new VideoDimensions[]{
-                    VideoDimensions.CIF_VIDEO_DIMENSIONS,
-                    VideoDimensions.VGA_VIDEO_DIMENSIONS,
-                    VideoDimensions.WVGA_VIDEO_DIMENSIONS,
-                    VideoDimensions.HD_540P_VIDEO_DIMENSIONS,
-                    VideoDimensions.HD_720P_VIDEO_DIMENSIONS,
-                    VideoDimensions.HD_960P_VIDEO_DIMENSIONS,
-                    VideoDimensions.HD_S1080P_VIDEO_DIMENSIONS,
-                    VideoDimensions.HD_1080P_VIDEO_DIMENSIONS
-            };
-
+    private final Map<String, String> localVideoTrackNames = new HashMap<>();
+    private final Map<String, NetworkQualityLevel> networkQualityLevels = new HashMap<>();
     private FragmentRoomBinding mFragmentRoomBinding;
     private RoomFragmentViewModel mRoomFragmentViewModel;
     private Context mContext;
@@ -145,20 +128,15 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private ImageButton mEndCallButton;
     private com.lennydennis.zerakiapp.databinding.ContentRoomBinding mIncludePrimaryView;
     private LinearLayout mThumbNailLinearLayout;
-    //    private FrameLayout mPrimaryVideoContainer;
     private ConstraintLayout mJoinMessageLayout;
     private TextView mJoinStatus;
     private TextView mJoinRoomName;
     private String roomName;
-
     private MenuItem screenCaptureMenuItem;
-
     private AudioManager audioManager;
     private int savedAudioMode = AudioManager.MODE_NORMAL;
     private boolean savedIsMicrophoneMute = false;
     private boolean savedIsSpeakerPhoneOn = false;
-
-    private String displayName;
     private LocalParticipant localParticipant;
     private String localParticipantSid = LOCAL_PARTICIPANT_STUB_SID;
     private Room room;
@@ -166,8 +144,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private LocalVideoTrack mCameraVideoTrack;
     private boolean restoreLocalVideoCameraTrack = false;
     private LocalVideoTrack mScreenVideoTrack;
-    private CameraCapturerCompat mCapturerCompat;
-    private ScreenCapturer mScreenCapturer;
     private final ScreenCapturer.Listener screenCapturerListener =
             new ScreenCapturer.Listener() {
                 @Override
@@ -186,20 +162,9 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     Log.e(TAG, "First frame from screen capturer available");
                 }
             };
-
-    private Map<String, String> localVideoTrackNames = new HashMap<>();
-    // TODO This should be decoupled from this Activity as part of
-    // https://issues.corp.twilio.com/browse/AHOYAPPS-473
-    private Map<String, NetworkQualityLevel> networkQualityLevels = new HashMap<>();
-
-    /**
-     * Coordinates participant thumbs and primary participant rendering.
-     */
+    private CameraCapturerCompat mCapturerCompat;
+    private ScreenCapturer mScreenCapturer;
     private ParticipantController participantController;
-
-    //    /** Disposes {@link VideoAppService} requests when activity is destroyed. */
-    private final CompositeDisposable rxDisposables = new CompositeDisposable();
-
     private Boolean isAudioMuted = false;
     private Boolean isVideoMuted = false;
     private String mRoomType;
@@ -234,7 +199,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         mIncludePrimaryView = mFragmentRoomBinding.includePrimaryView;
         mPrimaryVideoView = mIncludePrimaryView.primaryVideo;
         mThumbNailLinearLayout = mIncludePrimaryView.remoteVideoThumbnails;
-        //  mPrimaryVideoContainer = mIncludePrimaryView.videoContainer;
 
         mContext = getContext();
 
@@ -245,7 +209,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
         audioManager = (AudioManager) requireActivity().getSystemService(Context.AUDIO_SERVICE);
         audioManager.setSpeakerphoneOn(true);
-//        mSavedVolumeControlStream = requireActivity().getVolumeControlStream();
 
         participantController = new ParticipantController(mThumbNailLinearLayout, mPrimaryVideoView);
         participantController.setListener(participantClickListener());
@@ -261,23 +224,19 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     }
 
     private void initializeUI() {
-
         mVideoCallButton.setVisibility(View.VISIBLE);
         mVideoCallButton.setOnClickListener(connectVideoCallClickListener());
         mLocalVideoButton.setVisibility(View.VISIBLE);
         mLocalVideoButton.setOnClickListener(toggleVideoClickListener());
         mLocalMicButton.setVisibility(View.VISIBLE);
         mLocalMicButton.setOnClickListener(toggleMicClickListener());
-
         mSwitchCameraButton.setOnClickListener(switchCameraClickListener());
-
         mEndCallButton.setOnClickListener(disconnectCallClickListener());
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-
         mRoomManager = new RoomManager(mContext, CoroutineScope(Dispatchers.getIO()));
         RoomViewModelFactory factory = new RoomViewModelFactory(mRoomManager);
         mRoomFragmentViewModel = new ViewModelProvider(this, factory).get(RoomFragmentViewModel.class);
@@ -292,13 +251,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         publishLocalTracks();
 
         addParticipantViews();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-//        displayName = sharedPreferences.getString(Preferences.DISPLAY_NAME, null);
-//        setTitle(displayName);
     }
 
     @Override
@@ -364,7 +316,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         screenCaptureMenuItem = menu.findItem(R.id.share_screen_menu_item);
         requestPermissions();
         mRoomFragmentViewModel.getRoomEvents().observe(this, this::bindRoomEvents);
-
     }
 
     @Override
@@ -405,15 +356,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         }
     }
 
-//    @OnTextChanged(
-//            value = R.id.room_edit_text,
-//            callback = OnTextChanged.Callback.AFTER_TEXT_CHANGED
-//    )
-//    void onTextChanged(CharSequence text) {
-//        connect.setEnabled(!TextUtils.isEmpty(text));
-//    }
-//
-
     private View.OnClickListener toggleVideoClickListener() {
         return v -> {
             // remember old video reference for updating thumb in room
@@ -421,7 +363,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
             if (mCameraVideoTrack == null) {
                 isVideoMuted = false;
-
                 // add local camera track
                 mCameraVideoTrack =
                         LocalVideoTrack.create(
@@ -447,12 +388,10 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             }
 
             if (room != null && room.getState() == CONNECTED) {
-
                 // update local participant thumb
                 participantController.updateThumb(localParticipantSid, oldVideo, mCameraVideoTrack);
 
                 if (participantController.getPrimaryItem().sid.equals(localParticipantSid)) {
-
                     // local video was rendered as primary view - refreshing
                     participantController.renderAsPrimary(
                             localParticipantSid,
@@ -461,18 +400,13 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                             mLocalAudioTrack == null,
                             mCapturerCompat.getCameraSource()
                                     == CameraCapturer.CameraSource.FRONT_CAMERA);
-
-//                    participantController.getPrimaryView().showIdentityBadge(false);
-
                     // update thumb state
                     participantController.updateThumb(
                             localParticipantSid, mCameraVideoTrack, ParticipantView.State.SELECTED);
                 }
-
             } else {
                 renderLocalParticipantStub();
             }
-
             // update toggle button icon
             mLocalVideoButton.setImageResource(
                     mCameraVideoTrack != null
@@ -504,14 +438,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         };
     }
 
-
     private View.OnClickListener switchCameraClickListener() {
         return v -> {
             if (mCapturerCompat != null) {
-
                 boolean mirror =
                         mCapturerCompat.getCameraSource() == CameraCapturer.CameraSource.BACK_CAMERA;
-
                 mCapturerCompat.switchCamera();
 
                 if (participantController.getPrimaryItem().sid.equals(localParticipantSid)) {
@@ -576,7 +507,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     mRoomFragmentViewModel.connectToRoom(mRoomName, accessToken);
                 } else {
                     handleError(peerToPeerRoomState.getThrowable());
-
                 }
             }
         });
@@ -699,7 +629,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         if (room != null) {
             switch (room.getState()) {
                 case CONNECTED:
-                    toolbarTitle = "Room: "+ mRoomName;
+                    toolbarTitle = "Room: " + mRoomName;
                     switchCameraButtonSate = View.VISIBLE;
                     connectButtonState = View.GONE;
                     disconnectButtonState = View.VISIBLE;
@@ -717,18 +647,14 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     screenCaptureMenuItemState = false;
                     break;
             }
-
-
         }
 
-        // Check mute state
         if (isAudioMuted) {
             mLocalMicButton.setImageResource(R.drawable.ic_baseline_mic_off_24);
         }
         if (isVideoMuted) {
             mLocalVideoButton.setImageResource(R.drawable.ic_baseline_videocam_off_24);
         }
-
 
         mSwitchCameraButton.setVisibility(switchCameraButtonSate);
         mVideoCallButton.setVisibility(connectButtonState);
@@ -951,7 +877,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         if (old != null) {
 
             if (old.sid.equals(localParticipantSid)) {
-
                 // toggle local participant state
                 int state =
                         old.videoTrack == null
@@ -959,9 +884,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                                 : ParticipantView.State.VIDEO;
                 participantController.updateThumb(old.sid, old.videoTrack, state);
                 participantController.updateThumb(old.sid, old.videoTrack, old.mirror);
-
             } else {
-
                 // add thumb for remote participant
                 RemoteParticipant remoteParticipant = getRemoteParticipant(old);
                 if (remoteParticipant != null) {
@@ -988,13 +911,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         }
 
         if (item.sid.equals(localParticipantSid)) {
-
             // toggle local participant state and hide his badge
             participantController.updateThumb(
                     item.sid, item.videoTrack, ParticipantView.State.SELECTED);
             //   participantController.getPrimaryView().showIdentityBadge(false);
         } else {
-
             // remove remote participant thumb
             participantController.removeThumb(item);
         }
@@ -1003,11 +924,9 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private @Nullable
     RemoteParticipant getRemoteParticipant(ParticipantController.Item item) {
         RemoteParticipant remoteParticipant = null;
-
         for (RemoteParticipant temp : room.getRemoteParticipants()) {
             if (temp.getSid().equals(item.sid)) remoteParticipant = temp;
         }
-
         return remoteParticipant;
     }
 
@@ -1032,7 +951,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private void removeParticipant(RemoteParticipant remoteParticipant) {
 
         if (participantController.getPrimaryItem().sid.equals(remoteParticipant.getSid())) {
-
             // render local video if primary remoteParticipant has gone
             participantController.getThumb(localParticipantSid, mCameraVideoTrack).callOnClick();
         }
@@ -1083,8 +1001,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             localParticipant = room.getLocalParticipant();
 
             publishLocalTracks();
-
-            //setAudioFocus(true);
 
             addParticipantViews();
         }
@@ -1141,6 +1057,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                                     participantController.getThumb(
                                             remoteParticipant.getSid(), videoTrack);
                             participantController.setDominantSpeaker(participantView);
+
+                            boolean muted =
+                                    remoteParticipant.getRemoteAudioTracks().size() <= 0
+                                            || !remoteParticipant.getRemoteAudioTracks().get(0).isTrackEnabled();
+                            renderItemAsPrimary(new ParticipantController.Item(remoteParticipant.getSid(), remoteParticipant.getIdentity(), videoTrack, muted, false));
                         }
                     }
                 }
@@ -1213,6 +1134,10 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                                         remoteParticipant.getSid(), videoTrack);
                         if (participantView != null) {
                             participantController.setDominantSpeaker(participantView);
+                            boolean muted =
+                                    remoteParticipant.getRemoteAudioTracks().size() <= 0
+                                            || !remoteParticipant.getRemoteAudioTracks().get(0).isTrackEnabled();
+                            renderItemAsPrimary(new ParticipantController.Item(remoteParticipant.getSid(), remoteParticipant.getIdentity(), videoTrack, muted, true));
                         } else {
                             remoteParticipant.getIdentity();
                             ParticipantPrimaryView primaryParticipantView =
@@ -1232,10 +1157,36 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         }
     }
 
+    private void setNetworkQualityLevelImage(
+            ImageView networkQualityImage, NetworkQualityLevel networkQualityLevel, String sid) {
+
+        networkQualityLevels.put(sid, networkQualityLevel);
+        if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_UNKNOWN) {
+            networkQualityImage.setVisibility(View.GONE);
+        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_ZERO) {
+            networkQualityImage.setVisibility(View.VISIBLE);
+            networkQualityImage.setImageResource(R.drawable.network_quality_level_0);
+        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_ONE) {
+            networkQualityImage.setVisibility(View.VISIBLE);
+            networkQualityImage.setImageResource(R.drawable.network_quality_level_1);
+        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_TWO) {
+            networkQualityImage.setVisibility(View.VISIBLE);
+            networkQualityImage.setImageResource(R.drawable.network_quality_level_2);
+        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_THREE) {
+            networkQualityImage.setVisibility(View.VISIBLE);
+            networkQualityImage.setImageResource(R.drawable.network_quality_level_3);
+        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_FOUR) {
+            networkQualityImage.setVisibility(View.VISIBLE);
+            networkQualityImage.setImageResource(R.drawable.network_quality_level_4);
+        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_FIVE) {
+            networkQualityImage.setVisibility(View.VISIBLE);
+            networkQualityImage.setImageResource(R.drawable.network_quality_level_5);
+        }
+    }
 
     private class LocalParticipantListener implements LocalParticipant.Listener {
 
-        private ImageView networkQualityImage;
+        private final ImageView networkQualityImage;
 
         LocalParticipantListener(ParticipantView primaryView) {
             networkQualityImage = primaryView.networkQualityLevelImg;
@@ -1291,7 +1242,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
     private class RemoteParticipantListener implements RemoteParticipant.Listener {
 
-        private ImageView networkQualityImage;
+        private final ImageView networkQualityImage;
 
         RemoteParticipantListener(ParticipantView primaryView, String sid) {
             networkQualityImage = primaryView.networkQualityLevelImg;
@@ -1316,8 +1267,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteAudioTrackPublication.getTrackSid(),
                     remoteAudioTrackPublication.isTrackEnabled(),
                     remoteAudioTrackPublication.isTrackSubscribed());
-
-
         }
 
         @Override
@@ -1330,7 +1279,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteAudioTrackPublication.getTrackSid(),
                     remoteAudioTrackPublication.isTrackEnabled(),
                     remoteAudioTrackPublication.isTrackSubscribed());
-
         }
 
         @Override
@@ -1343,7 +1291,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteVideoTrackPublication.getTrackSid(),
                     remoteVideoTrackPublication.isTrackEnabled(),
                     remoteVideoTrackPublication.isTrackSubscribed());
-
         }
 
         @Override
@@ -1356,7 +1303,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteVideoTrackPublication.getTrackSid(),
                     remoteVideoTrackPublication.isTrackEnabled(),
                     remoteVideoTrackPublication.isTrackSubscribed());
-
         }
 
         @Override
@@ -1373,13 +1319,10 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
             boolean newAudioState = !remoteAudioTrackPublication.isTrackEnabled();
 
             if (participantController.getPrimaryItem().sid.equals(remoteParticipant.getSid())) {
-
                 // update audio state for primary view
                 participantController.getPrimaryItem().muted = newAudioState;
                 participantController.getPrimaryView().setMuted(newAudioState);
-
             } else {
-
                 // update thumbs with audio state
                 participantController.updateThumbs(remoteParticipant.getSid(), newAudioState);
             }
@@ -1413,13 +1356,10 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteAudioTrackPublication.isTrackSubscribed());
 
             if (participantController.getPrimaryItem().sid.equals(remoteParticipant.getSid())) {
-
                 // update audio state for primary view
                 participantController.getPrimaryItem().muted = true;
                 participantController.getPrimaryView().setMuted(true);
-
             } else {
-
                 // update thumbs with audio state
                 participantController.updateThumbs(remoteParticipant.getSid(), true);
             }
@@ -1506,7 +1446,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                 }
                 participantController.renderAsPrimary(primary);
             } else {
-
                 // remove thumb or leave empty video thumb
                 participantController.removeOrEmptyThumb(
                         remoteParticipant.getSid(),
@@ -1588,7 +1527,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteAudioTrackPublication.getTrackSid(),
                     remoteAudioTrackPublication.isTrackEnabled());
 
-
         }
 
         @Override
@@ -1600,8 +1538,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteParticipant.getIdentity(),
                     remoteAudioTrackPublication.getTrackSid(),
                     remoteAudioTrackPublication.isTrackEnabled());
-
-
         }
 
         @Override
@@ -1613,8 +1549,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteParticipant.getIdentity(),
                     remoteVideoTrackPublication.getTrackSid(),
                     remoteVideoTrackPublication.isTrackEnabled());
-
-
         }
 
         @Override
@@ -1626,35 +1560,6 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteParticipant.getIdentity(),
                     remoteVideoTrackPublication.getTrackSid(),
                     remoteVideoTrackPublication.isTrackEnabled());
-
-
-        }
-    }
-
-    private void setNetworkQualityLevelImage(
-            ImageView networkQualityImage, NetworkQualityLevel networkQualityLevel, String sid) {
-
-        networkQualityLevels.put(sid, networkQualityLevel);
-        if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_UNKNOWN) {
-            networkQualityImage.setVisibility(View.GONE);
-        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_ZERO) {
-            networkQualityImage.setVisibility(View.VISIBLE);
-            networkQualityImage.setImageResource(R.drawable.network_quality_level_0);
-        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_ONE) {
-            networkQualityImage.setVisibility(View.VISIBLE);
-            networkQualityImage.setImageResource(R.drawable.network_quality_level_1);
-        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_TWO) {
-            networkQualityImage.setVisibility(View.VISIBLE);
-            networkQualityImage.setImageResource(R.drawable.network_quality_level_2);
-        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_THREE) {
-            networkQualityImage.setVisibility(View.VISIBLE);
-            networkQualityImage.setImageResource(R.drawable.network_quality_level_3);
-        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_FOUR) {
-            networkQualityImage.setVisibility(View.VISIBLE);
-            networkQualityImage.setImageResource(R.drawable.network_quality_level_4);
-        } else if (networkQualityLevel == NetworkQualityLevel.NETWORK_QUALITY_LEVEL_FIVE) {
-            networkQualityImage.setVisibility(View.VISIBLE);
-            networkQualityImage.setImageResource(R.drawable.network_quality_level_5);
         }
     }
 }

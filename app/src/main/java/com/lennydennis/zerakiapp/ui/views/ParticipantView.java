@@ -87,8 +87,6 @@ abstract public class ParticipantView extends FrameLayout implements VideoRender
     @BindView(R.id.participant_no_audio)
     ImageView audioToggle;
 
-
-
     public ParticipantView(@NonNull Context context) {
         super(context);
         initParams(context, null);

@@ -12,8 +12,8 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class RoomManager(
-    private val context: Context,
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+        private val context: Context,
+        private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
 
     val VIDEO_CODEC = "pref_video_codecs"
@@ -29,8 +29,8 @@ class RoomManager(
     }
 
     suspend fun connectToRoom(
-        roomName: String,
-        accessToken:String
+            roomName: String,
+            accessToken: String
     ) {
         coroutineScope.launch {
             try {
@@ -52,8 +52,8 @@ class RoomManager(
                         .enableNetworkQuality(true)
                         .networkQualityConfiguration(configuration)
 
-                val maxVideoBitrate:Int = 0;
-                val maxAudioBitrate:Int = 0;
+                val maxVideoBitrate: Int = 0;
+                val maxAudioBitrate: Int = 0;
                 val encodingParameters = EncodingParameters(maxAudioBitrate, maxVideoBitrate)
                 connectOptionsBuilder.preferVideoCodecs(listOf(preferedVideoCodec))
                 connectOptionsBuilder.preferAudioCodecs(listOf(preferredAudioCodec))
@@ -72,16 +72,16 @@ class RoomManager(
 
     private fun getVideoCodecPreference(key: String): VideoCodec {
         return (Vp8Codec.NAME)?.let { videoCodecName ->
-                when (videoCodecName) {
-                    Vp8Codec.NAME -> {
-                        val simulcast:Boolean = false
-                        Vp8Codec(simulcast)
-                    }
-                    H264Codec.NAME -> H264Codec()
-                    Vp9Codec.NAME -> Vp9Codec()
-                    else -> Vp8Codec()
+            when (videoCodecName) {
+                Vp8Codec.NAME -> {
+                    val simulcast: Boolean = false
+                    Vp8Codec(simulcast)
                 }
-            } ?: Vp8Codec()
+                H264Codec.NAME -> H264Codec()
+                Vp9Codec.NAME -> Vp9Codec()
+                else -> Vp8Codec()
+            }
+        } ?: Vp8Codec()
     }
 
     private fun getAudioCodecPreference(): AudioCodec {

@@ -1,6 +1,5 @@
 package com.lennydennis.zerakiapp.ui.dialog;
 
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
@@ -27,7 +26,6 @@ public class RoomDialog extends DialogFragment {
     private ImageView mCancelButton;
     private Button mConnectButton;
     private String mRoomType;
-
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {

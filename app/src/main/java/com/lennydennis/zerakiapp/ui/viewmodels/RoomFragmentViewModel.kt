@@ -25,18 +25,18 @@ class RoomFragmentViewModel(private val roomManager: RoomManager) : ViewModel() 
         return mAccessTokenRepo.fetchAccessToken(userName, roomName).also { mAccessTokenMutableLiveData = it }
     }
 
-    fun createPeerToPeerRoom(roomName: String?):MutableLiveData<PeerToPeerRoomState?>?{
+    fun createPeerToPeerRoom(roomName: String?): MutableLiveData<PeerToPeerRoomState?>? {
         return mPeerToPeerRoomRepo.createPeerToPeerRoom(roomName).also { mPeerToPeerRoomMutableLiveData = it }
     }
 
     fun connectToRoom(
-        roomName: String,
-        accessToken:String) =
-        viewModelScope.launch {
-            roomManager.connectToRoom(
-                    roomName,
-                    accessToken)
-        }
+            roomName: String,
+            accessToken: String) =
+            viewModelScope.launch {
+                roomManager.connectToRoom(
+                        roomName,
+                        accessToken)
+            }
 
     fun disconnect() {
         roomManager.disconnect()
