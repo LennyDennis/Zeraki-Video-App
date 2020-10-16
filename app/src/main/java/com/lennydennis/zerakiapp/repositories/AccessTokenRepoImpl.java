@@ -19,7 +19,6 @@ public class AccessTokenRepoImpl implements AccessTokenRepo {
     public AccessTokenRepoImpl() {
     }
 
-
     @Override
     public MutableLiveData<AccessTokenState> fetchAccessToken(String userName, String roomName) {
         TwilioApi twilioApiService = TwilioRetrofitInstance.getTwilioReftrofitInstance();

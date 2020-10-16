@@ -36,10 +36,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -110,15 +110,12 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
 
     private static final int PERMISSIONS_REQUEST_CODE = 100;
     private static final int MEDIA_PROJECTION_REQUEST_CODE = 101;
-    private static final int STATS_DELAY = 1000; // milliseconds
     private static final String MICROPHONE_TRACK_NAME = "microphone";
     private static final String CAMERA_TRACK_NAME = "camera";
     private static final String SCREEN_TRACK_NAME = "screen";
     private static final String IS_AUDIO_MUTED = "IS_AUDIO_MUTED";
     private static final String IS_VIDEO_MUTED = "IS_VIDEO_MUTED";
 
-    // This will be used instead of real local participant sid,
-    // because that information is unknown until room connection is fully established
     private static final String LOCAL_PARTICIPANT_STUB_SID = "";
 
     private AspectRatio[] aspectRatios =
@@ -148,7 +145,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private ImageButton mEndCallButton;
     private com.lennydennis.zerakiapp.databinding.ContentRoomBinding mIncludePrimaryView;
     private LinearLayout mThumbNailLinearLayout;
-    private FrameLayout mPrimaryVideoContainer;
+    //    private FrameLayout mPrimaryVideoContainer;
     private ConstraintLayout mJoinMessageLayout;
     private TextView mJoinStatus;
     private TextView mJoinRoomName;
@@ -208,6 +205,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
     private String mRoomType;
     private ImageButton mSwitchCameraButton;
     private RoomManager mRoomManager;
+    private ProgressBar mJoiningRoomProgressBar;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -226,15 +224,17 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         mEndCallButton = mFragmentRoomBinding.disconnect;
         mLocalVideoButton = mFragmentRoomBinding.localVideoButton;
         mLocalMicButton = mFragmentRoomBinding.localMicButton;
+        mSwitchCameraButton = mFragmentRoomBinding.switchCamera;
+
         mJoinMessageLayout = mFragmentRoomBinding.joinStatusLayout;
         mJoinStatus = mFragmentRoomBinding.joinStatus;
         mJoinRoomName = mFragmentRoomBinding.joinRoomName;
-        mSwitchCameraButton = mFragmentRoomBinding.switchCamera;
+        mJoiningRoomProgressBar = mFragmentRoomBinding.joinRoomProgressBar;
 
         mIncludePrimaryView = mFragmentRoomBinding.includePrimaryView;
         mPrimaryVideoView = mIncludePrimaryView.primaryVideo;
         mThumbNailLinearLayout = mIncludePrimaryView.remoteVideoThumbnails;
-        mPrimaryVideoContainer = mIncludePrimaryView.videoContainer;
+        //  mPrimaryVideoContainer = mIncludePrimaryView.videoContainer;
 
         mContext = getContext();
 
@@ -682,51 +682,43 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         int switchCameraButtonSate = View.GONE;
         int connectButtonState = View.VISIBLE;
         int disconnectButtonState = View.GONE;
-
-        int joinRoomLayoutState = View.VISIBLE;
         int joinStatusLayoutState = View.GONE;
-
         boolean screenCaptureMenuItemState = false;
-
-        String toolbarTitle = mRoomName;
+        String toolbarTitle = getString(R.string.app_name);
         String joinStatus = "";
-        int recordingWarningVisibility = View.GONE;
 
         if (roomEvent instanceof RoomEvent.Connecting) {
-            screenCaptureMenuItemState = true;
-            switchCameraButtonSate = View.VISIBLE;
-            connectButtonState = View.GONE;
-            disconnectButtonState = View.VISIBLE;
-
-            joinRoomLayoutState = View.GONE;
             joinStatusLayoutState = View.VISIBLE;
-            recordingWarningVisibility = View.VISIBLE;
 
             if (mRoomName != null) {
                 roomName = mRoomName;
             }
-            joinStatus = "Joining...";
+            joinStatus = "Joining ";
         }
 
         if (room != null) {
             switch (room.getState()) {
                 case CONNECTED:
+                    toolbarTitle = "Room: "+ mRoomName;
                     switchCameraButtonSate = View.VISIBLE;
                     connectButtonState = View.GONE;
                     disconnectButtonState = View.VISIBLE;
-                    joinStatusLayoutState = View.GONE;
                     screenCaptureMenuItemState = true;
 
+                    joinStatusLayoutState = View.GONE;
                     joinStatus = "";
 
                     break;
                 case DISCONNECTED:
+                    toolbarTitle = getString(R.string.app_name);
                     switchCameraButtonSate = View.GONE;
                     connectButtonState = View.VISIBLE;
                     disconnectButtonState = View.GONE;
                     screenCaptureMenuItemState = false;
                     break;
             }
+
+
         }
 
         // Check mute state
@@ -743,9 +735,11 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         mEndCallButton.setVisibility(disconnectButtonState);
 
         mJoinMessageLayout.setVisibility(joinStatusLayoutState);
+        mJoinStatus.setVisibility(joinStatusLayoutState);
+        mJoinRoomName.setVisibility(joinStatusLayoutState);
+        mJoiningRoomProgressBar.setVisibility(joinStatusLayoutState);
 
-        setTitle(toolbarTitle);
-
+        setToolbarTitle(toolbarTitle);
         mJoinStatus.setText(joinStatus);
         mJoinRoomName.setText(mRoomName);
 
@@ -755,10 +749,10 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
         }
     }
 
-    private void setTitle(String toolbarTitle) {
+    private void setToolbarTitle(String toolbarTitle) {
         ActionBar actionBar = ((AppCompatActivity) requireActivity()).getSupportActionBar();
         if (actionBar != null) {
-            actionBar.setTitle("Room: " + toolbarTitle);
+            actionBar.setTitle(toolbarTitle);
         }
     }
 
@@ -1323,7 +1317,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteAudioTrackPublication.isTrackEnabled(),
                     remoteAudioTrackPublication.isTrackSubscribed());
 
-            // TODO: Need design
+
         }
 
         @Override
@@ -1336,7 +1330,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteAudioTrackPublication.getTrackSid(),
                     remoteAudioTrackPublication.isTrackEnabled(),
                     remoteAudioTrackPublication.isTrackSubscribed());
-            // TODO: Need design
+
         }
 
         @Override
@@ -1349,7 +1343,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteVideoTrackPublication.getTrackSid(),
                     remoteVideoTrackPublication.isTrackEnabled(),
                     remoteVideoTrackPublication.isTrackSubscribed());
-            // TODO: Need design
+
         }
 
         @Override
@@ -1362,7 +1356,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteVideoTrackPublication.getTrackSid(),
                     remoteVideoTrackPublication.isTrackEnabled(),
                     remoteVideoTrackPublication.isTrackSubscribed());
-            // TODO: Need design
+
         }
 
         @Override
@@ -1401,7 +1395,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteParticipant.getIdentity(),
                     remoteAudioTrackPublication.getTrackSid(),
                     twilioException.getMessage());
-            // TODO: Need design
+
             Snackbar.make(mPrimaryVideoView, "onAudioTrackSubscriptionFailed", Snackbar.LENGTH_LONG)
                     .show();
         }
@@ -1471,7 +1465,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteParticipant.getIdentity(),
                     remoteVideoTrackPublication.getTrackSid(),
                     twilioException.getMessage());
-            // TODO: Need design
+
             Snackbar.make(mPrimaryVideoView, "onVideoTrackSubscriptionFailed", Snackbar.LENGTH_LONG)
                     .show();
         }
@@ -1566,7 +1560,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteParticipant.getIdentity(),
                     remoteDataTrackPublication.getTrackSid(),
                     twilioException.getMessage());
-            // TODO: Need design
+
             Snackbar.make(mPrimaryVideoView, "onDataTrackSubscriptionFailed", Snackbar.LENGTH_LONG)
                     .show();
         }
@@ -1594,7 +1588,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteAudioTrackPublication.getTrackSid(),
                     remoteAudioTrackPublication.isTrackEnabled());
 
-            // TODO: need design
+
         }
 
         @Override
@@ -1607,7 +1601,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteAudioTrackPublication.getTrackSid(),
                     remoteAudioTrackPublication.isTrackEnabled());
 
-            // TODO: need design
+
         }
 
         @Override
@@ -1620,7 +1614,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteVideoTrackPublication.getTrackSid(),
                     remoteVideoTrackPublication.isTrackEnabled());
 
-            // TODO: need design
+
         }
 
         @Override
@@ -1633,7 +1627,7 @@ public class RoomFragment extends Fragment implements RoomDialog.RoomDialogListe
                     remoteVideoTrackPublication.getTrackSid(),
                     remoteVideoTrackPublication.isTrackEnabled());
 
-            // TODO: need design
+
         }
     }
 
